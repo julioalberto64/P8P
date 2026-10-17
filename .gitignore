@@ -1,0 +1,67 @@
+# Depósitos de dependencias
+node_modules/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+
+# Archivos de entorno y secretos (¡NUNCA subir a Git!)
+.env
+.env.*
+!.env.example
+!.env.template
+*.pem
+*.key
+
+# Archivos de compilación y salida
+dist/
+build/
+out/
+.next/
+.nuxt/
+.vuepress/dist/
+.output/
+
+# Logs y depuración
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Archivos de sistema operativo
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Configuración de editores e IDEs
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Archivos temporales y de caché
+.cache/
+.eslintcache
+.stylelintcache
+.prettiercache
+*.tsbuildinfo
+.turbo/
+
+# Pruebas y cobertura
+coverage/
+.nyc_output/
+
+# Supabase (archivos locales generados)
+supabase/.temp/
