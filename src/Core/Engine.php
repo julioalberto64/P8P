@@ -8,27 +8,14 @@ use RuntimeException;
 
 class Engine
 {
-    /**
-     * Contenedor de instancias de nodos registrados [node_type => NodeInterface]
-     */
     private array $registeredNodes = [];
 
-    /**
-     * Registra un nuevo tipo de nodo en el motor
-     */
     public function registerNode(NodeInterface $node): void
     {
         $schema = $node->getSchema();
         $this->registeredNodes[$schema['type']] = $node;
     }
 
-    /**
-     * Ejecuta la estructura completa de un workflow
-     *
-     * @param array $workflowData Estructura del flujo (nodos y conexiones desde el frontend)
-     * @param array $initialContext Datos iniciales (ej. payload de un webhook o evento)
-     * @return array Historial detallado de la ejecución por nodo
-     */
     public function executeWorkflow(array $workflowData, array $initialContext = []): array
     {
         $nodes = $workflowData['nodes'] ?? [];
@@ -38,7 +25,6 @@ class Engine
             throw new InvalidArgumentException("El workflow no contiene nodos para ejecutar.");
         }
 
-        // 1. Mapear conexiones (grafo dirigido)
         $adjacencyList = [];
         foreach ($edges as $edge) {
             $source = $edge['source'];
@@ -46,13 +32,11 @@ class Engine
             $adjacencyList[$source][] = $target;
         }
 
-        // 2. Identificar nodo inicial (Start / Webhook)
         $startNode = $this->findStartNode($nodes);
         if (!$startNode) {
             throw new RuntimeException("No se encontró un nodo de inicio en el workflow.");
         }
 
-        // 3. Ejecución secuencial siguiendo las conexiones
         $executionHistory = [];
         $context = $initialContext;
         $queue = [$startNode['id']];
@@ -64,7 +48,7 @@ class Engine
             $currentNodeId = array_shift($queue);
 
             if (isset($visited[$currentNodeId])) {
-                continue; // Evitar ciclos infinitos
+                continue;
             }
 
             $visited[$currentNodeId] = true;
@@ -82,12 +66,17 @@ class Engine
 
             /** @var NodeInterface $nodeInstance */
             $nodeInstance = $this->registeredNodes[$nodeType];
-            $parameters = $nodeData['data']['parameters'] ?? [];
 
-            // Ejecutar el nodo actual pasándole los parámetros y el contexto acumulado
+            // 1. Obtener parámetros crudos enviados desde el frontend
+            $rawParameters = $nodeData['data']['parameters'] ?? [];
+
+            // 2. Interpolar/evaluar expresiones {{node_id.key}} usando el contexto acumulado
+            $evaluatedParameters = ExpressionEvaluator::evaluate($rawParameters, $context);
+
             $startTime = microtime(true);
             try {
-                $output = $nodeInstance->execute($parameters, $context);
+                // 3. Ejecutar el nodo pasándole los parámetros ya evaluados
+                $output = $nodeInstance->execute($evaluatedParameters, $context);
                 $executionTime = round((microtime(true) - $startTime) * 1000, 2);
 
                 $executionHistory[$currentNodeId] = [
@@ -95,10 +84,11 @@ class Engine
                     'type' => $nodeType,
                     'status' => 'success',
                     'execution_time_ms' => $executionTime,
+                    'evaluated_parameters' => $evaluatedParameters,
                     'output' => $output
                 ];
 
-                // Actualizar contexto global con los datos retornados por este nodo
+                // 4. Guardar en el contexto usando el ID del nodo como namespace
                 $context[$currentNodeId] = $output;
 
             } catch (\Throwable $e) {
@@ -112,11 +102,9 @@ class Engine
                     'error' => $e->getMessage()
                 ];
 
-                // Detener la rama de ejecución si ocurre un error sin capturar
                 break;
             }
 
-            // Encolar los nodos siguientes conectados a la salida de este
             if (isset($adjacencyList[$currentNodeId])) {
                 foreach ($adjacencyList[$currentNodeId] as $nextId) {
                     if (!isset($visited[$nextId])) {
@@ -133,9 +121,6 @@ class Engine
         ];
     }
 
-    /**
-     * Busca el nodo de inicio dentro de la lista
-     */
     private function findStartNode(array $nodes): ?array
     {
         foreach ($nodes as $node) {
@@ -143,7 +128,6 @@ class Engine
                 return $node;
             }
         }
-        // Si no está marcado explícitamente, tomamos el primer nodo definido
         return $nodes[0] ?? null;
     }
 }

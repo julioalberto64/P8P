@@ -163,6 +163,7 @@ class ComposerStaticInite63f0275461d896318a7bcc1ac8fb871
         'GuzzleHttp\\Utils' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/Utils.php',
         'P8P\\Core\\Database' => __DIR__ . '/../..' . '/src/Core/Database.php',
         'P8P\\Core\\Engine' => __DIR__ . '/../..' . '/src/Core/Engine.php',
+        'P8P\\Core\\ExpressionEvaluator' => __DIR__ . '/../..' . '/src/Core/ExpressionEvaluator.php',
         'P8P\\Interfaces\\NodeInterface' => __DIR__ . '/../..' . '/src/Interfaces/NodeInterface.php',
         'P8P\\Nodes\\HttpRequestNode' => __DIR__ . '/../..' . '/src/Nodes/HttpRequestNode.php',
         'P8P\\Nodes\\SetVariableNode' => __DIR__ . '/../..' . '/src/Nodes/SetVariableNode.php',

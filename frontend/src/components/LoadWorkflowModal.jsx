@@ -1,0 +1,77 @@
+import React, { useEffect, useState } from 'react';
+import { FolderOpen, X, Clock } from 'lucide-react';
+
+export default function LoadWorkflowModal({ isOpen, onClose, onLoadWorkflow }) {
+    const [workflows, setWorkflows] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchWorkflows();
+        }
+    }, [isOpen]);
+
+    const fetchWorkflows = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('http://localhost:8000/get_workflows.php');
+            const data = await res.json();
+            if (data.success) {
+                setWorkflows(data.workflows);
+            }
+        } catch (err) {
+            console.error('Error al cargar workflows:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-lg p-5 shadow-2xl">
+                <div className="flex items-center justify-between border-b border-slate-700 pb-3 mb-4">
+                    <div className="flex items-center gap-2">
+                        <FolderOpen className="w-5 h-5 text-indigo-400" />
+                        <h3 className="font-semibold text-slate-100">Abrir Workflow Guardado</h3>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-700"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                {loading ? (
+                    <div className="py-8 text-center text-slate-400 text-sm">Cargando flujos desde MariaDB...</div>
+                ) : workflows.length === 0 ? (
+                    <div className="py-8 text-center text-slate-400 text-sm">No hay workflows guardados aún.</div>
+                ) : (
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                        {workflows.map((wf) => (
+                            <button
+                                key={wf.id}
+                                onClick={() => onLoadWorkflow(wf.id)}
+                                className="w-full flex items-center justify-between p-3 rounded-lg bg-slate-900/60 hover:bg-slate-700/60 border border-slate-700/50 hover:border-indigo-500/50 transition text-left group"
+                            >
+                                <div>
+                                    <div className="text-sm font-semibold text-slate-200 group-hover:text-indigo-300 transition">
+                                        {wf.name}
+                                    </div>
+                                    <div className="text-xs text-slate-500 font-mono flex items-center gap-1 mt-0.5">
+                                        <Clock className="w-3 h-3" /> {wf.updated_at}
+                                    </div>
+                                </div>
+                                <span className="text-[10px] font-mono bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-1 rounded">
+                  {wf.id.substring(0, 8)}...
+                </span>
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}

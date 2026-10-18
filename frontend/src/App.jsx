@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import Canvas from './components/Canvas.jsx';
 import AddNodeModal from './components/AddNodeModal.jsx';
 import NodeInspector from './components/NodeInspector.jsx';
-import { Play, Plus, Save, Layers } from 'lucide-react';
+import LoadWorkflowModal from './components/LoadWorkflowModal.jsx';
+import { Play, Plus, Save, Layers, FolderOpen } from 'lucide-react';
 
 export default function App() {
   const [selectedNode, setSelectedNode] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoadModalOpen, setIsLoadModalOpen] = useState(false);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [executionResult, setExecutionResult] = useState(null);
@@ -49,7 +51,27 @@ export default function App() {
     setSelectedNode(null);
   };
 
-  // 4. Ejecutar el Workflow en el motor PHP (api.php)
+  // 4. Cargar un workflow guardado desde MariaDB (get_workflows.php)
+  const handleLoadWorkflow = async (id) => {
+    try {
+      const response = await fetch(`http://localhost:8000/get_workflows.php?id=${id}`);
+      const data = await response.json();
+
+      if (data.success && data.workflow) {
+        const { structure } = data.workflow;
+        setWorkflowId(data.workflow.id);
+        setNodes(structure.nodes || []);
+        setEdges(structure.edges || []);
+        setIsLoadModalOpen(false);
+      } else {
+        alert(`Error al obtener workflow: ${data.error || 'Respuesta inválida'}`);
+      }
+    } catch (err) {
+      alert(`Error de conexión al cargar el workflow: ${err.message}`);
+    }
+  };
+
+  // 5. Ejecutar el Workflow en el motor PHP (api.php)
   const handleTestWorkflow = async () => {
     setIsRunning(true);
     setExecutionResult(null);
@@ -85,7 +107,7 @@ export default function App() {
     }
   };
 
-  // 5. Guardar el Workflow en MariaDB (save_workflow.php)
+  // 6. Guardar el Workflow en MariaDB (save_workflow.php)
   const handleSaveWorkflow = async () => {
     setIsSaving(true);
 
@@ -127,6 +149,11 @@ export default function App() {
             </div>
             <span className="text-slate-500">/</span>
             <span className="text-sm font-medium text-slate-300">Editor Visual</span>
+            {workflowId && (
+                <span className="text-[10px] font-mono bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-indigo-400">
+              ID: {workflowId.substring(0, 8)}...
+            </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -135,6 +162,13 @@ export default function App() {
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-medium transition"
             >
               <Plus className="w-3.5 h-3.5" /> Agregar Nodo
+            </button>
+
+            <button
+                onClick={() => setIsLoadModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium transition border border-slate-700"
+            >
+              <FolderOpen className="w-3.5 h-3.5 text-indigo-400" /> Open
             </button>
 
             <button
@@ -165,11 +199,18 @@ export default function App() {
               onNodeSelect={setSelectedNode}
           />
 
-          {/* Modal de selección de nodos */}
+          {/* Modal de selección de nuevos nodos */}
           <AddNodeModal
               isOpen={isModalOpen}
               onClose={() => setIsModalOpen(false)}
               onAddNode={handleAddNode}
+          />
+
+          {/* Modal para cargar workflows guardados */}
+          <LoadWorkflowModal
+              isOpen={isLoadModalOpen}
+              onClose={() => setIsLoadModalOpen(false)}
+              onLoadWorkflow={handleLoadWorkflow}
           />
 
           {/* Inspector lateral para editar parámetros del nodo */}

@@ -5,5 +5,5 @@ return [
     'port' => '3306',
     'database' => 'p8p_db',
     'username' => 'root',
-    'password' => '', // Coloca tu contraseña si MariaDB tiene una
+    'password' => 'master123', // Coloca tu contraseña si MariaDB tiene una
 ];

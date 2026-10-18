@@ -104,6 +104,7 @@ return array(
     'GuzzleHttp\\Utils' => $vendorDir . '/guzzlehttp/guzzle/src/Utils.php',
     'P8P\\Core\\Database' => $baseDir . '/src/Core/Database.php',
     'P8P\\Core\\Engine' => $baseDir . '/src/Core/Engine.php',
+    'P8P\\Core\\ExpressionEvaluator' => $baseDir . '/src/Core/ExpressionEvaluator.php',
     'P8P\\Interfaces\\NodeInterface' => $baseDir . '/src/Interfaces/NodeInterface.php',
     'P8P\\Nodes\\HttpRequestNode' => $baseDir . '/src/Nodes/HttpRequestNode.php',
     'P8P\\Nodes\\SetVariableNode' => $baseDir . '/src/Nodes/SetVariableNode.php',
