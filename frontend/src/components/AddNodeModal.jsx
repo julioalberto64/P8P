@@ -1,5 +1,5 @@
 import React from 'react';
-import {Globe, Play, Sliders, Bot, Cpu, Database, Wrench, Sparkles, X, GitFork} from 'lucide-react';
+import {Globe, Play, Sliders, Bot, Cpu, Database, Wrench, Sparkles, X, GitFork, MessageSquare} from 'lucide-react';
 const nodeTypes = [
     {
         type: 'start',
@@ -9,10 +9,24 @@ const nodeTypes = [
         isStart: true,
     },
     {
+        type: 'chat_trigger',
+        label: 'Chat Trigger',
+        description: 'Disparador de mensajes desde el Widget de Chat JS',
+        icon: MessageSquare,
+        isStart: true,
+    },
+    {
         type: 'set_variable',
         label: 'Set Variable',
         description: 'Define y asigna variables personalizadas (ej. {{title}})',
         icon: Sliders,
+        isStart: false,
+    },
+    {
+        type: 'http_request',
+        label: 'HTTP Request',
+        description: 'Petición GET, POST, PUT o DELETE a una API',
+        icon: Globe,
         isStart: false,
     },
     {
@@ -55,13 +69,6 @@ const nodeTypes = [
         label: 'MCP Server Tool',
         description: 'Conector de herramientas Model Context Protocol (JSON-RPC)',
         icon: Wrench,
-        isStart: false,
-    },
-    {
-        type: 'http_request',
-        label: 'HTTP Request',
-        description: 'Petición GET, POST, PUT o DELETE a una API',
-        icon: Globe,
         isStart: false,
     },
 ];

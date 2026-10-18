@@ -1,8 +1,9 @@
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { Globe, Play, Settings, Bot, Cpu, Database, Wrench, Sparkles, GitFork } from 'lucide-react';
+import { Globe, Play, Settings, Bot, Cpu, Database, Wrench, Sparkles, GitFork, MessageSquare } from 'lucide-react';
 const icons = {
     start: Play,
+    chat_trigger: MessageSquare,
     http_request: Globe,
     if_condition: GitFork,
     ai_agent: Bot,

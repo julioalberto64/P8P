@@ -13,6 +13,7 @@ use P8P\Nodes\AiAgentNode;
 use P8P\Nodes\GeminiChatModelNode;
 use P8P\Nodes\OllamaChatModelNode;
 use P8P\Nodes\McpToolNode;
+use P8P\Nodes\ChatTriggerNode;
 
 // Inicializar motor y registrar nodos
 $engine = new Engine();
@@ -24,6 +25,7 @@ $engine->registerNode(new AiAgentNode());
 $engine->registerNode(new GeminiChatModelNode());
 $engine->registerNode(new OllamaChatModelNode());
 $engine->registerNode(new McpToolNode());
+$engine->registerNode(new ChatTriggerNode());
 
 $queueManager = new QueueManager();
 

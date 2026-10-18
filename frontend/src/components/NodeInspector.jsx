@@ -37,6 +37,7 @@ export default function NodeInspector({ selectedNode, onClose, onUpdateNode, onD
         });
     };
 
+
     return (
         <aside className="absolute top-4 right-4 bottom-4 w-84 bg-slate-800/95 backdrop-blur border border-slate-700 rounded-xl p-4 shadow-2xl z-20 flex flex-col">
             {/* Header */}
@@ -106,6 +107,14 @@ export default function NodeInspector({ selectedNode, onClose, onUpdateNode, onD
                             />
                         </div>
                     </>
+                )}
+
+                {/* Chat Trigger Form */}
+                {nodeType === 'chat_trigger' && (
+                    <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-700/50 text-slate-400 text-[11px] space-y-2">
+                        <div>Punto de entrada para el widget de chat flotante (<code className="text-indigo-400">p8p-chat.js</code>).</div>
+                        <div>Recibe automáticamente las variables <code className="text-emerald-400">{`{{user_message}}`}</code> y <code className="text-emerald-400">{`{{session_id}}`}</code>.</div>
+                    </div>
                 )}
 
                 {/* Set Variable Form */}
