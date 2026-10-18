@@ -4,7 +4,7 @@ namespace P8P\Nodes;
 
 use P8P\Interfaces\NodeInterface;
 use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\RequestException;
 
 class HttpRequestNode implements NodeInterface
 {
@@ -13,67 +13,82 @@ class HttpRequestNode implements NodeInterface
         return [
             'type' => 'http_request',
             'name' => 'HTTP Request',
-            'icon' => 'globe',
-            'description' => 'Realiza peticiones HTTP/REST a APIs externas',
             'parameters' => [
                 'url' => ['type' => 'string', 'required' => true],
-                'method' => ['type' => 'select', 'options' => ['GET', 'POST', 'PUT', 'DELETE'], 'default' => 'GET'],
-                'headers' => ['type' => 'json', 'required' => false],
-                'body' => ['type' => 'json', 'required' => false]
+                'method' => ['type' => 'string', 'default' => 'GET'],
+                'headers' => ['type' => 'string', 'default' => ''],
+                'body' => ['type' => 'string', 'default' => '']
             ]
         ];
     }
 
     public function validate(array $parameters): bool
     {
-        if (empty($parameters['url']) || !filter_var($parameters['url'], FILTER_VALIDATE_URL)) {
-            return false;
-        }
-
-        $allowedMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
-        $method = strtoupper($parameters['method'] ?? 'GET');
-
-        return in_array($method, $allowedMethods);
+        return !empty($parameters['url']);
     }
 
     public function execute(array $parameters, array $context): array
     {
-        if (!$this->validate($parameters)) {
-            throw new \InvalidArgumentException("Parámetros inválidos para HttpRequestNode");
-        }
-
-        $client = new Client(['timeout' => 15.0]);
+        $url = $parameters['url'] ?? '';
         $method = strtoupper($parameters['method'] ?? 'GET');
-        $url = $parameters['url'];
+        $rawHeaders = $parameters['headers'] ?? '';
+        $rawBody = $parameters['body'] ?? '';
 
+        $client = new Client(['timeout' => 30]);
         $options = [];
 
-        if (!empty($parameters['headers'])) {
-            $options['headers'] = is_string($parameters['headers'])
-                ? json_decode($parameters['headers'], true)
-                : $parameters['headers'];
+        // 1. Procesar Headers
+        $headers = [];
+        if (!empty($rawHeaders)) {
+            if (is_array($rawHeaders)) {
+                $headers = $rawHeaders;
+            } elseif (is_string($rawHeaders)) {
+                $decoded = json_decode($rawHeaders, true);
+                if (is_array($decoded)) {
+                    $headers = $decoded;
+                }
+            }
+        }
+        if (!empty($headers)) {
+            $options['headers'] = $headers;
         }
 
-        if (!empty($parameters['body'])) {
-            $options['json'] = is_string($parameters['body'])
-                ? json_decode($parameters['body'], true)
-                : $parameters['body'];
+        // 2. Procesar Body (POST, PUT, PATCH)
+        if (in_array($method, ['POST', 'PUT', 'PATCH']) && !empty($rawBody)) {
+            if (is_array($rawBody)) {
+                $options['json'] = $rawBody;
+            } elseif (is_string($rawBody)) {
+                $decodedBody = json_decode($rawBody, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decodedBody)) {
+                    // Si el cuerpo es un JSON válido, se envía mediante la opción 'json' de Guzzle
+                    $options['json'] = $decodedBody;
+                } else {
+                    $options['body'] = $rawBody;
+                }
+            }
         }
 
         try {
             $response = $client->request($method, $url, $options);
             $statusCode = $response->getStatusCode();
-            $responseBody = json_decode((string) $response->getBody(), true) ?? (string) $response->getBody();
+            $responseContent = (string)$response->getBody();
+
+            $decodedResponse = json_decode($responseContent, true);
+            $data = (json_last_error() === JSON_ERROR_NONE) ? $decodedResponse : $responseContent;
 
             return [
                 'success' => true,
                 'status_code' => $statusCode,
-                'data' => $responseBody
+                'data' => $data
             ];
-        } catch (GuzzleException $e) {
+        } catch (RequestException $e) {
+            $statusCode = $e->hasResponse() ? $e->getResponse()->getStatusCode() : 500;
+            $errorBody = $e->hasResponse() ? (string)$e->getResponse()->getBody() : $e->getMessage();
+
             return [
                 'success' => false,
-                'error' => $e->getMessage()
+                'status_code' => $statusCode,
+                'error' => $errorBody
             ];
         }
     }

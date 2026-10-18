@@ -31,3 +31,15 @@ CREATE TABLE IF NOT EXISTS queue_jobs (
     KEY idx_queue_workflow_id (workflow_id),
     CONSTRAINT fk_queue_workflows FOREIGN KEY (workflow_id) REFERENCES workflows (id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- Tabla para almacenar credenciales encriptadas (API Keys, OAuth Tokens, Basic Auth)
+CREATE TABLE IF NOT EXISTS credentials (
+                                           id VARCHAR(36) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    type VARCHAR(100) NOT NULL,    -- ej: 'openai_api', 'bearer_token', 'header_auth'
+    data TEXT NOT NULL,             -- JSON encriptado en AES-256-GCM
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

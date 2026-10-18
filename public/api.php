@@ -14,7 +14,11 @@ require_once __DIR__ . '/../vendor/autoload.php';
 use P8P\Core\Engine;
 use P8P\Nodes\StartNode;
 use P8P\Nodes\HttpRequestNode;
-use P8P\Nodes\SetVariableNode; // 1. Importar nodo
+use P8P\Nodes\SetVariableNode;
+use P8P\Nodes\AiAgentNode;
+use P8P\Nodes\OllamaChatModelNode;
+use P8P\Nodes\GeminiChatModelNode;
+use P8P\Nodes\McpToolNode;
 
 $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
 
@@ -27,10 +31,14 @@ if (empty($input['nodes'])) {
 try {
     $engine = new Engine();
 
-    // 2. Registrar en el motor
+    // Registrar todos los nodos en el motor
     $engine->registerNode(new StartNode());
     $engine->registerNode(new HttpRequestNode());
     $engine->registerNode(new SetVariableNode());
+    $engine->registerNode(new AiAgentNode());
+    $engine->registerNode(new OllamaChatModelNode());
+    $engine->registerNode(new GeminiChatModelNode());
+    $engine->registerNode(new McpToolNode());
 
     $result = $engine->executeWorkflow($input);
 

@@ -125,10 +125,123 @@ export default function NodeInspector({ selectedNode, onClose, onUpdateNode, onD
                     </>
                 )}
 
+                {/* Google Gemini Model Form */}
+                {nodeType === 'gemini_model' && (
+                    <>
+                        <div>
+                            <label className="block text-slate-300 mb-1 font-medium">API Key (Google AI Studio)</label>
+                            <input
+                                type="password"
+                                value={parameters.api_key || ''}
+                                onChange={(e) => handleParamChange('api_key', e.target.value)}
+                                placeholder="AIzaSy..."
+                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-slate-300 mb-1 font-medium">Model</label>
+                            <select
+                                value={parameters.model || 'gemini-3.8-flash'}
+                                onChange={(e) => handleParamChange('model', e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 text-xs"
+                            >
+                                <option value="gemini-3.8-flash">gemini-3.8-flash (Recomendado)</option>
+                                <option value="gemini-3-flash">gemini-3-flash</option>
+                                <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                                <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-slate-300 mb-1 font-medium">Temperature</label>
+                            <input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="2"
+                                value={parameters.temperature ?? 0.7}
+                                onChange={(e) => handleParamChange('temperature', parseFloat(e.target.value))}
+                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                            />
+                        </div>
+                    </>
+                )}
+
+                {/* Ollama Chat Model Form */}
+                {nodeType === 'ollama_model' && (
+                    <>
+                        <div>
+                            <label className="block text-slate-300 mb-1 font-medium">Ollama Endpoint</label>
+                            <input
+                                type="text"
+                                value={parameters.endpoint || 'http://127.0.0.1:11434'}
+                                onChange={(e) => handleParamChange('endpoint', e.target.value)}
+                                placeholder="http://127.0.0.1:11434"
+                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-slate-300 mb-1 font-medium">Model Name</label>
+                            <input
+                                type="text"
+                                value={parameters.model || 'llama3'}
+                                onChange={(e) => handleParamChange('model', e.target.value)}
+                                placeholder="llama3, mistral, qwen..."
+                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                            />
+                        </div>
+                    </>
+                )}
+
+                {/* AI Agent Form */}
+                {nodeType === 'ai_agent' && (
+                    <>
+                        <div>
+                            <label className="block text-slate-300 mb-1 font-medium">System Prompt</label>
+                            <textarea
+                                rows={4}
+                                value={parameters.system_prompt || ''}
+                                onChange={(e) => handleParamChange('system_prompt', e.target.value)}
+                                placeholder="Eres un asistente de automatización en P8P..."
+                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 text-[11px]"
+                            />
+                        </div>
+                    </>
+                )}
+
+                {/* MCP Tool Form */}
+                {nodeType === 'mcp_tool' && (
+                    <>
+                        <div>
+                            <label className="block text-slate-300 mb-1 font-medium">MCP Server URL</label>
+                            <input
+                                type="text"
+                                value={parameters.server_url || ''}
+                                onChange={(e) => handleParamChange('server_url', e.target.value)}
+                                placeholder="http://localhost:3001/mcp"
+                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-slate-300 mb-1 font-medium">Tool Name</label>
+                            <input
+                                type="text"
+                                value={parameters.tool_name || ''}
+                                onChange={(e) => handleParamChange('tool_name', e.target.value)}
+                                placeholder="search_database"
+                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                            />
+                        </div>
+                    </>
+                )}
+
                 {/* Start Trigger Form */}
                 {nodeType === 'start' && (
                     <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-700/50 text-slate-400 text-[11px]">
-                        Nodo detonador inicial. No requiere parámetros.
+                        Nodo detonador inicial. No requiere parámetros adicionales.
                     </div>
                 )}
 
@@ -136,7 +249,7 @@ export default function NodeInspector({ selectedNode, onClose, onUpdateNode, onD
                 <div className="p-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-[11px] text-indigo-300 flex items-start gap-2">
                     <HelpCircle className="w-4 h-4 shrink-0 mt-0.5" />
                     <span>
-            Puedes usar expresiones dinámicas como <code className="bg-slate-900 px-1 py-0.5 rounded text-white">{`{{nombre_variable}}`}</code> para inyectar datos entre nodos.
+            Puedes usar expresiones dinámicas como <code className="bg-slate-900 px-1 py-0.5 rounded text-white">{`{{nombre_variable}}`}</code> o <code className="bg-slate-900 px-1 py-0.5 rounded text-white">{`{{node_id.output.key}}`}</code> para inyectar datos entre nodos.
           </span>
                 </div>
             </div>

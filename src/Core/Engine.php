@@ -10,12 +10,18 @@ class Engine
 {
     private array $registeredNodes = [];
 
+    /**
+     * Registra un nodo en el motor
+     */
     public function registerNode(NodeInterface $node): void
     {
         $schema = $node->getSchema();
         $this->registeredNodes[$schema['type']] = $node;
     }
 
+    /**
+     * Ejecuta la secuencia del grafo resolviendo el flujo principal y los sub-puertos (model, memory, tools)
+     */
     public function executeWorkflow(array $workflowData, array $initialContext = []): array
     {
         $nodes = $workflowData['nodes'] ?? [];
@@ -25,11 +31,22 @@ class Engine
             throw new InvalidArgumentException("El workflow no contiene nodos para ejecutar.");
         }
 
+        // Separar las conexiones principales de la secuencia de las sub-conexiones de soporte
         $adjacencyList = [];
+        $subConnections = [];
+
         foreach ($edges as $edge) {
             $source = $edge['source'];
             $target = $edge['target'];
-            $adjacencyList[$source][] = $target;
+            $targetHandle = $edge['targetHandle'] ?? 'main_input';
+
+            if ($targetHandle !== 'main_input' && !empty($targetHandle)) {
+                // Conexión dirigida a sub-puertos inferiores (model, memory, tools)
+                $subConnections[$target][$targetHandle][] = $source;
+            } else {
+                // Flujo principal de ejecución
+                $adjacencyList[$source][] = $target;
+            }
         }
 
         $startNode = $this->findStartNode($nodes);
@@ -67,15 +84,37 @@ class Engine
             /** @var NodeInterface $nodeInstance */
             $nodeInstance = $this->registeredNodes[$nodeType];
 
-            // 1. Obtener parámetros crudos enviados desde el frontend
+            // 1. Obtener parámetros crudos desde el frontend
             $rawParameters = $nodeData['data']['parameters'] ?? [];
 
-            // 2. Interpolar/evaluar expresiones {{node_id.key}} usando el contexto acumulado
+            // 2. Interpolar expresiones dinámicas {{node_id.key}} o {{variable}} usando el contexto acumulado
             $evaluatedParameters = ExpressionEvaluator::evaluate($rawParameters, $context);
 
+            // 3. Resolver sub-nodos conectados a los sub-puertos inferiores (model, memory, tools)
+            $nodeSubConnections = $subConnections[$currentNodeId] ?? [];
+            $subNodeOutputs = [];
+
+            foreach ($nodeSubConnections as $handle => $sourceNodeIds) {
+                foreach ($sourceNodeIds as $sourceId) {
+                    if (isset($nodesById[$sourceId])) {
+                        $sourceType = $nodesById[$sourceId]['type'] ?? '';
+                        if (isset($this->registeredNodes[$sourceType])) {
+                            $sourceInstance = $this->registeredNodes[$sourceType];
+                            $sourceParams = ExpressionEvaluator::evaluate(
+                                $nodesById[$sourceId]['data']['parameters'] ?? [],
+                                $context
+                            );
+                            $subNodeOutputs[$handle][] = $sourceInstance->execute($sourceParams, $context);
+                        }
+                    }
+                }
+            }
+
+            $evaluatedParameters['_sub_connections'] = $subNodeOutputs;
+
+            // 4. Ejecutar el nodo principal
             $startTime = microtime(true);
             try {
-                // 3. Ejecutar el nodo pasándole los parámetros ya evaluados
                 $output = $nodeInstance->execute($evaluatedParameters, $context);
                 $executionTime = round((microtime(true) - $startTime) * 1000, 2);
 
@@ -88,7 +127,7 @@ class Engine
                     'output' => $output
                 ];
 
-                // 4. Guardar en el contexto usando el ID del nodo como namespace
+                // Guardar resultado en el contexto global usando el ID del nodo
                 $context[$currentNodeId] = $output;
 
             } catch (\Throwable $e) {
@@ -102,9 +141,10 @@ class Engine
                     'error' => $e->getMessage()
                 ];
 
-                break;
+                break; // Detener la ejecución si ocurre un error no controlado
             }
 
+            // Encolar los siguientes nodos en el flujo principal
             if (isset($adjacencyList[$currentNodeId])) {
                 foreach ($adjacencyList[$currentNodeId] as $nextId) {
                     if (!isset($visited[$nextId])) {

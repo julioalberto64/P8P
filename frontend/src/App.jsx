@@ -87,7 +87,9 @@ export default function App() {
       })),
       edges: edges.map((e) => ({
         source: e.source,
-        target: e.target
+        target: e.target,
+        sourceHandle: e.sourceHandle, // <-- Incluir handles de origen y destino
+        targetHandle: e.targetHandle  // <-- Necesario para sub-puertos (model, memory, tools)
       }))
     };
 
@@ -106,7 +108,6 @@ export default function App() {
       setIsRunning(false);
     }
   };
-
   // 6. Guardar el Workflow en MariaDB (save_workflow.php)
   const handleSaveWorkflow = async () => {
     setIsSaving(true);
