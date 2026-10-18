@@ -166,6 +166,7 @@ class ComposerStaticInite63f0275461d896318a7bcc1ac8fb871
         'P8P\\Core\\Engine' => __DIR__ . '/../..' . '/src/Core/Engine.php',
         'P8P\\Core\\EnvLoader' => __DIR__ . '/../..' . '/src/Core/EnvLoader.php',
         'P8P\\Core\\ExpressionEvaluator' => __DIR__ . '/../..' . '/src/Core/ExpressionEvaluator.php',
+        'P8P\\Core\\QueueManager' => __DIR__ . '/../..' . '/src/Core/QueueManager.php',
         'P8P\\Interfaces\\NodeInterface' => __DIR__ . '/../..' . '/src/Interfaces/NodeInterface.php',
         'P8P\\Nodes\\AiAgentNode' => __DIR__ . '/../..' . '/src/Nodes/AiAgentNode.php',
         'P8P\\Nodes\\GeminiChatModelNode' => __DIR__ . '/../..' . '/src/Nodes/GeminiChatModelNode.php',

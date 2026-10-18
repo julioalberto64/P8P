@@ -18,20 +18,18 @@ CREATE TABLE IF NOT EXISTS workflows (
 
 -- 2. Tabla para la cola de ejecuciones asíncronas en segundo plano
 CREATE TABLE IF NOT EXISTS queue_jobs (
-                                          id VARCHAR(36) NOT NULL,
-    workflow_id VARCHAR(36) NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'pending', -- pending, processing, completed, failed
-    payload JSON DEFAULT NULL,                     -- Datos de contexto enviados al trabajo
-    error_message TEXT DEFAULT NULL,
+    id VARCHAR(36) NOT NULL,
+    workflow_id VARCHAR(36) NULL,
+    payload LONGTEXT NOT NULL,
+    status ENUM('pending', 'processing', 'completed', 'failed') NOT NULL DEFAULT 'pending',
     attempts INT NOT NULL DEFAULT 0,
+    error_message TEXT NULL,
+    result LONGTEXT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    executed_at DATETIME DEFAULT NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    KEY idx_queue_status (status),
-    KEY idx_queue_workflow_id (workflow_id),
-    CONSTRAINT fk_queue_workflows FOREIGN KEY (workflow_id) REFERENCES workflows (id) ON DELETE CASCADE
+    KEY idx_status (status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 
 -- Tabla para almacenar credenciales encriptadas (API Keys, OAuth Tokens, Basic Auth)
 CREATE TABLE IF NOT EXISTS credentials (

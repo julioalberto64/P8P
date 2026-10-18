@@ -107,6 +107,7 @@ return array(
     'P8P\\Core\\Engine' => $baseDir . '/src/Core/Engine.php',
     'P8P\\Core\\EnvLoader' => $baseDir . '/src/Core/EnvLoader.php',
     'P8P\\Core\\ExpressionEvaluator' => $baseDir . '/src/Core/ExpressionEvaluator.php',
+    'P8P\\Core\\QueueManager' => $baseDir . '/src/Core/QueueManager.php',
     'P8P\\Interfaces\\NodeInterface' => $baseDir . '/src/Interfaces/NodeInterface.php',
     'P8P\\Nodes\\AiAgentNode' => $baseDir . '/src/Nodes/AiAgentNode.php',
     'P8P\\Nodes\\GeminiChatModelNode' => $baseDir . '/src/Nodes/GeminiChatModelNode.php',
