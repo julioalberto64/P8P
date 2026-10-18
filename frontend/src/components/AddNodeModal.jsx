@@ -1,0 +1,63 @@
+import React from 'react';
+import { Globe, Play, X } from 'lucide-react';
+
+const nodeTypes = [
+    {
+        type: 'start',
+        label: 'Start Trigger',
+        description: 'Punto de inicio para la ejecución del flujo',
+        icon: Play,
+        isStart: true,
+    },
+    {
+        type: 'http_request',
+        label: 'HTTP Request',
+        description: 'Petición GET, POST, PUT o DELETE a una API',
+        icon: Globe,
+        isStart: false,
+    },
+];
+
+export default function AddNodeModal({ isOpen, onClose, onAddNode }) {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md p-5 shadow-2xl">
+                <div className="flex items-center justify-between border-b border-slate-700 pb-3 mb-4">
+                    <h3 className="font-semibold text-slate-100">Agregar Nuevo Nodo</h3>
+                    <button
+                        onClick={onClose}
+                        className="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-700"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                <div className="space-y-3">
+                    {nodeTypes.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                            <button
+                                key={item.type}
+                                onClick={() => {
+                                    onAddNode(item);
+                                    onClose();
+                                }}
+                                className="w-full flex items-start gap-3.5 p-3 rounded-lg bg-slate-900/60 hover:bg-slate-700/60 border border-slate-700/50 hover:border-indigo-500/50 transition text-left group"
+                            >
+                                <div className="p-2.5 rounded-lg bg-indigo-500/20 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition">
+                                    <Icon className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <div className="text-sm font-semibold text-slate-200">{item.label}</div>
+                                    <div className="text-xs text-slate-400 mt-0.5">{item.description}</div>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
+    );
+}
