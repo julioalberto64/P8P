@@ -165,6 +165,7 @@ class ComposerStaticInite63f0275461d896318a7bcc1ac8fb871
         'P8P\\Core\\Engine' => __DIR__ . '/../..' . '/src/Core/Engine.php',
         'P8P\\Interfaces\\NodeInterface' => __DIR__ . '/../..' . '/src/Interfaces/NodeInterface.php',
         'P8P\\Nodes\\HttpRequestNode' => __DIR__ . '/../..' . '/src/Nodes/HttpRequestNode.php',
+        'P8P\\Nodes\\SetVariableNode' => __DIR__ . '/../..' . '/src/Nodes/SetVariableNode.php',
         'P8P\\Nodes\\StartNode' => __DIR__ . '/../..' . '/src/Nodes/StartNode.php',
         'PhpToken' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/PhpToken.php',
         'Psr\\Http\\Client\\ClientExceptionInterface' => __DIR__ . '/..' . '/psr/http-client/src/ClientExceptionInterface.php',

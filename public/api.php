@@ -12,8 +12,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use P8P\Core\Engine;
+use P8P\Nodes\StartNode;
 use P8P\Nodes\HttpRequestNode;
-use P8P\Nodes\StartNode; // 1. Importar la clase
+use P8P\Nodes\SetVariableNode; // 1. Importar nodo
 
 $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
 
@@ -26,9 +27,10 @@ if (empty($input['nodes'])) {
 try {
     $engine = new Engine();
 
-    // 2. Registrar los nodos soportados en el motor
+    // 2. Registrar en el motor
     $engine->registerNode(new StartNode());
     $engine->registerNode(new HttpRequestNode());
+    $engine->registerNode(new SetVariableNode());
 
     $result = $engine->executeWorkflow($input);
 

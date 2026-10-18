@@ -106,6 +106,7 @@ return array(
     'P8P\\Core\\Engine' => $baseDir . '/src/Core/Engine.php',
     'P8P\\Interfaces\\NodeInterface' => $baseDir . '/src/Interfaces/NodeInterface.php',
     'P8P\\Nodes\\HttpRequestNode' => $baseDir . '/src/Nodes/HttpRequestNode.php',
+    'P8P\\Nodes\\SetVariableNode' => $baseDir . '/src/Nodes/SetVariableNode.php',
     'P8P\\Nodes\\StartNode' => $baseDir . '/src/Nodes/StartNode.php',
     'PhpToken' => $vendorDir . '/symfony/polyfill-php80/Resources/stubs/PhpToken.php',
     'Psr\\Http\\Client\\ClientExceptionInterface' => $vendorDir . '/psr/http-client/src/ClientExceptionInterface.php',

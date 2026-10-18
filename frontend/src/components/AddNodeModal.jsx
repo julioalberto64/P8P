@@ -1,5 +1,5 @@
 import React from 'react';
-import { Globe, Play, X } from 'lucide-react';
+import { Globe, Play, Sliders, X } from 'lucide-react';
 
 const nodeTypes = [
     {
@@ -16,8 +16,14 @@ const nodeTypes = [
         icon: Globe,
         isStart: false,
     },
+    {
+        type: 'set_variable',
+        label: 'Set Variable',
+        description: 'Asigna o transforma variables dentro del flujo',
+        icon: Sliders,
+        isStart: false,
+    },
 ];
-
 export default function AddNodeModal({ isOpen, onClose, onAddNode }) {
     if (!isOpen) return null;
 

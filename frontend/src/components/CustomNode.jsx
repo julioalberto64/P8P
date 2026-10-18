@@ -1,10 +1,10 @@
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { Globe, Play, Settings } from 'lucide-react';
-
+import { Globe, Play, Settings, Sliders } from 'lucide-react';
 const icons = {
     start: Play,
     http_request: Globe,
+    set_variable: Sliders,
     default: Settings
 };
 
