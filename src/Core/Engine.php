@@ -41,11 +41,10 @@ class Engine
             $targetHandle = $edge['targetHandle'] ?? 'main_input';
 
             if ($targetHandle !== 'main_input' && !empty($targetHandle)) {
-                // Conexión dirigida a sub-puertos inferiores (model, memory, tools)
                 $subConnections[$target][$targetHandle][] = $source;
             } else {
-                // Flujo principal de ejecución
-                $adjacencyList[$source][] = $target;
+                // Guardar la información completa del enlace para poder evaluar sourceHandle
+                $adjacencyList[$source][] = $edge;
             }
         }
 
@@ -146,7 +145,18 @@ class Engine
 
             // Encolar los siguientes nodos en el flujo principal
             if (isset($adjacencyList[$currentNodeId])) {
-                foreach ($adjacencyList[$currentNodeId] as $nextId) {
+                foreach ($adjacencyList[$currentNodeId] as $edge) {
+                    $nextId = $edge['target'];
+                    $edgeSourceHandle = $edge['sourceHandle'] ?? 'main_output';
+
+                    // Si el nodo actual es una condición If, validar si el enlace coincide con la rama activa ('true' o 'false')
+                    if (isset($output['branch'])) {
+                        $activeBranch = $output['branch']; // 'true' o 'false'
+                        if ($edgeSourceHandle !== $activeBranch) {
+                            continue; // Ignorar la rama que no se cumplió
+                        }
+                    }
+
                     if (!isset($visited[$nextId])) {
                         $queue[] = $nextId;
                     }

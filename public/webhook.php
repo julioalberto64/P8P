@@ -5,6 +5,7 @@ header("Access-Control-Allow-Headers: Content-Type");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
 header("Content-Type: application/json");
 
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
@@ -20,6 +21,7 @@ use P8P\Nodes\SetVariableNode;
 use P8P\Nodes\AiAgentNode;
 use P8P\Nodes\OllamaChatModelNode;
 use P8P\Nodes\McpToolNode;
+use P8P\Nodes\IfConditionNode;
 
 $workflowId = $_GET['id'] ?? null;
 
@@ -61,6 +63,7 @@ try {
     $engine->registerNode(new AiAgentNode());
     $engine->registerNode(new OllamaChatModelNode());
     $engine->registerNode(new McpToolNode());
+    $engine->registerNode(new IfConditionNode());
 
     // 3. Inyectar datos del webhook como contexto inicial
     $initialContext = [

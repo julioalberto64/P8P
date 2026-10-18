@@ -8,6 +8,49 @@ export default function NodeInspector({ selectedNode, onClose, onUpdateNode, onD
     const nodeType = (data.type || '').toLowerCase();
     const parameters = data.parameters || {};
 
+
+    {/* If Condition Form */}
+    {nodeType === 'if_condition' && (
+        <>
+            <div>
+                <label className="block text-slate-300 mb-1 font-medium">Value 1</label>
+                <input
+                    type="text"
+                    value={parameters.value_1 || ''}
+                    onChange={(e) => handleParamChange('value_1', e.target.value)}
+                    placeholder="ej. {{output_text}}"
+                    className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                />
+            </div>
+
+            <div>
+                <label className="block text-slate-300 mb-1 font-medium">Operator</label>
+                <select
+                    value={parameters.operator || 'equals'}
+                    onChange={(e) => handleParamChange('operator', e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 text-xs"
+                >
+                    <option value="equals">Equals (==)</option>
+                    <option value="not_equals">Not Equals (!=)</option>
+                    <option value="contains">Contains</option>
+                    <option value="not_contains">Does Not Contain</option>
+                    <option value="is_empty">Is Empty</option>
+                    <option value="is_not_empty">Is Not Empty</option>
+                </select>
+            </div>
+
+            <div>
+                <label className="block text-slate-300 mb-1 font-medium">Value 2</label>
+                <input
+                    type="text"
+                    value={parameters.value_2 || ''}
+                    onChange={(e) => handleParamChange('value_2', e.target.value)}
+                    placeholder="ej. OK"
+                    className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                />
+            </div>
+        </>
+    )}
     const handleParamChange = (key, value) => {
         onUpdateNode(id, {
             ...data,

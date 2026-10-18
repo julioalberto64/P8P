@@ -1,10 +1,10 @@
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { Globe, Play, Settings, Bot, Cpu, Database, Wrench, Sparkles } from 'lucide-react';
-
+import { Globe, Play, Settings, Bot, Cpu, Database, Wrench, Sparkles, GitFork } from 'lucide-react';
 const icons = {
     start: Play,
     http_request: Globe,
+    if_condition: GitFork,
     ai_agent: Bot,
     gemini_model: Sparkles,
     ollama_model: Cpu,
@@ -16,8 +16,8 @@ const icons = {
 export default function CustomNode({ data, selected }) {
     const IconComponent = icons[data.type] || icons.default;
     const isAgent = data.type === 'ai_agent';
+    const isIfCondition = data.type === 'if_condition';
 
-    // Determinar si es un sub-nodo de soporte (Modelo, Memoria o Herramienta)
     const isModelNode = data.type === 'ollama_model' || data.type === 'gemini_model';
     const isMemoryNode = data.type === 'simple_memory';
     const isToolNode = data.type === 'mcp_tool';
@@ -27,7 +27,7 @@ export default function CustomNode({ data, selected }) {
         <div className={`px-4 py-3 shadow-xl rounded-xl bg-slate-800 border-2 min-w-[200px] relative transition-all ${
             selected ? 'border-indigo-500 ring-2 ring-indigo-500/30' : 'border-slate-700'
         }`}>
-            {/* Entrada Principal (Izquierda) - Solo para nodos del flujo principal */}
+            {/* Entrada Principal (Izquierda) */}
             {!data.isStart && !isSubNode && (
                 <Handle
                     type="target"
@@ -40,8 +40,8 @@ export default function CustomNode({ data, selected }) {
             <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-lg ${
                     isAgent ? 'bg-purple-500/20 text-purple-400' :
-                        data.isStart ? 'bg-emerald-500/20 text-emerald-400' :
-                            data.type === 'gemini_model' ? 'bg-sky-500/20 text-sky-400' : 'bg-indigo-500/20 text-indigo-400'
+                        isIfCondition ? 'bg-amber-500/20 text-amber-400' :
+                            data.isStart ? 'bg-emerald-500/20 text-emerald-400' : 'bg-indigo-500/20 text-indigo-400'
                 }`}>
                     <IconComponent className="w-5 h-5" />
                 </div>
@@ -55,8 +55,8 @@ export default function CustomNode({ data, selected }) {
                 </div>
             </div>
 
-            {/* Salida Principal (Derecha) */}
-            {!isModelNode && !isMemoryNode && (
+            {/* Salida Estándar a la Derecha */}
+            {!isModelNode && !isMemoryNode && !isIfCondition && (
                 <Handle
                     type="source"
                     position={isToolNode ? Position.Top : Position.Right}
@@ -65,10 +65,35 @@ export default function CustomNode({ data, selected }) {
                 />
             )}
 
-            {/* SUB-PUERTOS INFERIORES PARA AI AGENT (Model, Memory, Tools) */}
+            {/* SALIDAS DOBLES PARA IF CONDITION (True / False) */}
+            {isIfCondition && (
+                <div className="flex flex-col gap-2 mt-3 pt-2 border-t border-slate-700/60 text-[10px] font-mono">
+                    <div className="flex items-center justify-end text-emerald-400 font-bold relative">
+                        <span>TRUE</span>
+                        <Handle
+                            type="source"
+                            position={Position.Right}
+                            id="true"
+                            style={{ top: '65%' }}
+                            className="!w-2.5 !h-2.5 !bg-emerald-400 !border-2 !border-slate-800"
+                        />
+                    </div>
+                    <div className="flex items-center justify-end text-rose-400 font-bold relative">
+                        <span>FALSE</span>
+                        <Handle
+                            type="source"
+                            position={Position.Right}
+                            id="false"
+                            style={{ top: '88%' }}
+                            className="!w-2.5 !h-2.5 !bg-rose-400 !border-2 !border-slate-800"
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* SUB-PUERTOS INFERIORES PARA AI AGENT */}
             {isAgent && (
                 <div className="flex justify-between items-center pt-3 mt-3 border-t border-slate-700/60 text-[9px] text-slate-400 font-mono">
-                    {/* Handle Modelo */}
                     <div className="relative flex flex-col items-center">
                         <span>Model*</span>
                         <Handle
@@ -78,8 +103,6 @@ export default function CustomNode({ data, selected }) {
                             className="!w-2.5 !h-2.5 !bg-purple-400 !border-2 !border-slate-800 !-bottom-4"
                         />
                     </div>
-
-                    {/* Handle Memoria */}
                     <div className="relative flex flex-col items-center">
                         <span>Memory</span>
                         <Handle
@@ -89,8 +112,6 @@ export default function CustomNode({ data, selected }) {
                             className="!w-2.5 !h-2.5 !bg-emerald-400 !border-2 !border-slate-800 !-bottom-4"
                         />
                     </div>
-
-                    {/* Handle Herramientas MCP */}
                     <div className="relative flex flex-col items-center">
                         <span>Tools</span>
                         <Handle
@@ -103,7 +124,7 @@ export default function CustomNode({ data, selected }) {
                 </div>
             )}
 
-            {/* Salida Superior para Sub-Nodos de Modelo o Memoria */}
+            {/* Salida Superior para Sub-Nodos */}
             {(isModelNode || isMemoryNode) && (
                 <Handle
                     type="source"

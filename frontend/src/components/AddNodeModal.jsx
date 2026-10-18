@@ -1,5 +1,5 @@
 import React from 'react';
-import { Globe, Play, Sliders, Bot, Cpu, Database, Wrench, Sparkles, X } from 'lucide-react';
+import {Globe, Play, Sliders, Bot, Cpu, Database, Wrench, Sparkles, X, GitFork} from 'lucide-react';
 const nodeTypes = [
     {
         type: 'start',
@@ -7,6 +7,13 @@ const nodeTypes = [
         description: 'Disparador inicial de mensajes o eventos',
         icon: Play,
         isStart: true,
+    },
+    {
+        type: 'set_variable',
+        label: 'Set Variable',
+        description: 'Define y asigna variables personalizadas (ej. {{title}})',
+        icon: Sliders,
+        isStart: false,
     },
     {
         type: 'ai_agent',
@@ -20,6 +27,13 @@ const nodeTypes = [
         label: 'Google Gemini Chat Model',
         description: 'Modelo LLM en la nube de Google (Gemini 1.5 Flash / Pro)',
         icon: Sparkles,
+        isStart: false,
+    },
+    {
+        type: 'if_condition',
+        label: 'If Condition',
+        description: 'Bifurcación lógica condicional (TRUE / FALSE)',
+        icon: GitFork,
         isStart: false,
     },
     {

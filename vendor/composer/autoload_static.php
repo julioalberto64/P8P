@@ -170,6 +170,7 @@ class ComposerStaticInite63f0275461d896318a7bcc1ac8fb871
         'P8P\\Nodes\\AiAgentNode' => __DIR__ . '/../..' . '/src/Nodes/AiAgentNode.php',
         'P8P\\Nodes\\GeminiChatModelNode' => __DIR__ . '/../..' . '/src/Nodes/GeminiChatModelNode.php',
         'P8P\\Nodes\\HttpRequestNode' => __DIR__ . '/../..' . '/src/Nodes/HttpRequestNode.php',
+        'P8P\\Nodes\\IfConditionNode' => __DIR__ . '/../..' . '/src/Nodes/IfConditionNode.php',
         'P8P\\Nodes\\McpToolNode' => __DIR__ . '/../..' . '/src/Nodes/McpToolNode.php',
         'P8P\\Nodes\\OllamaChatModelNode' => __DIR__ . '/../..' . '/src/Nodes/OllamaChatModelNode.php',
         'P8P\\Nodes\\SetVariableNode' => __DIR__ . '/../..' . '/src/Nodes/SetVariableNode.php',

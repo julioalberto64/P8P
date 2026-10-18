@@ -19,6 +19,7 @@ use P8P\Nodes\AiAgentNode;
 use P8P\Nodes\OllamaChatModelNode;
 use P8P\Nodes\GeminiChatModelNode;
 use P8P\Nodes\McpToolNode;
+use P8P\Nodes\IfConditionNode;
 
 $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
 
@@ -39,6 +40,7 @@ try {
     $engine->registerNode(new OllamaChatModelNode());
     $engine->registerNode(new GeminiChatModelNode());
     $engine->registerNode(new McpToolNode());
+    $engine->registerNode(new IfConditionNode());
 
     $result = $engine->executeWorkflow($input);
 

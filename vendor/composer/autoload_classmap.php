@@ -111,6 +111,7 @@ return array(
     'P8P\\Nodes\\AiAgentNode' => $baseDir . '/src/Nodes/AiAgentNode.php',
     'P8P\\Nodes\\GeminiChatModelNode' => $baseDir . '/src/Nodes/GeminiChatModelNode.php',
     'P8P\\Nodes\\HttpRequestNode' => $baseDir . '/src/Nodes/HttpRequestNode.php',
+    'P8P\\Nodes\\IfConditionNode' => $baseDir . '/src/Nodes/IfConditionNode.php',
     'P8P\\Nodes\\McpToolNode' => $baseDir . '/src/Nodes/McpToolNode.php',
     'P8P\\Nodes\\OllamaChatModelNode' => $baseDir . '/src/Nodes/OllamaChatModelNode.php',
     'P8P\\Nodes\\SetVariableNode' => $baseDir . '/src/Nodes/SetVariableNode.php',
