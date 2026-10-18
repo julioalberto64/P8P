@@ -3,74 +3,137 @@
 namespace P8P\Core;
 
 use P8P\Core\Database;
+use PDO;
 use Exception;
 
 class CredentialManager
 {
-    private static function getSecretKey(): string
+    private PDO $db;
+    private string $encryptionKey;
+
+    public function __construct()
     {
-        $secret = $_ENV['APP_SECRET'] ?? getenv('APP_SECRET');
-        if (empty($secret)) {
-            throw new Exception("APP_SECRET no definida en el archivo .env");
-        }
-        return hash('sha256', $secret, true);
+        $config = require __DIR__ . '/../../config/database.php';
+        $this->db = Database::getConnection($config);
+
+        // Obtener la clave secreta desde el entorno o un fallback seguro
+        $secret = $_ENV['APP_SECRET'] ?? getenv('APP_SECRET') ?? 'p8p_default_secret_key_32bytes_len!!';
+        $this->encryptionKey = hash('sha256', $secret, true);
     }
 
     /**
-     * Encripta un arreglo de datos (ej. ['api_key' => 'sk-...'])
+     * Cifra un texto o arreglo con AES-256-GCM
      */
-    public static function encrypt(array $data): string
+    public function encrypt(mixed $data): string
     {
-        $key = self::getSecretKey();
-        $cipher = "aes-256-gcm";
-        $ivlen = openssl_cipher_iv_length($cipher);
-        $iv = openssl_random_pseudo_bytes($ivlen);
+        $json = is_string($data) ? $data : json_encode($data);
+        $iv = random_bytes(12);
+        $tag = '';
 
-        $plaintext = json_encode($data);
-        $ciphertext = openssl_encrypt($plaintext, $cipher, $key, OPENSSL_RAW_DATA, $iv, $tag);
+        $ciphertext = openssl_encrypt(
+            $json,
+            'aes-256-gcm',
+            $this->encryptionKey,
+            OPENSSL_RAW_DATA,
+            $iv,
+            $tag
+        );
 
         return base64_encode($iv . $tag . $ciphertext);
     }
 
     /**
-     * Desencripta la credencial retenida en la base de datos
+     * Descifra datos almacenados
      */
-    public static function decrypt(string $encryptedData): array
+    public function decrypt(string $encryptedData): mixed
     {
-        $key = self::getSecretKey();
-        $cipher = "aes-256-gcm";
-        $data = base64_decode($encryptedData);
+        $decoded = base64_decode($encryptedData);
+        $iv = substr($decoded, 0, 12);
+        $tag = substr($decoded, 12, 16);
+        $ciphertext = substr($decoded, 28);
 
-        $ivlen = openssl_cipher_iv_length($cipher);
-        $iv = substr($data, 0, $ivlen);
-        $tag = substr($data, $ivlen, 16);
-        $ciphertext = substr($data, $ivlen + 16);
+        $decrypted = openssl_decrypt(
+            $ciphertext,
+            'aes-256-gcm',
+            $this->encryptionKey,
+            OPENSSL_RAW_DATA,
+            $iv,
+            $tag
+        );
 
-        $plaintext = openssl_decrypt($ciphertext, $cipher, $key, OPENSSL_RAW_DATA, $iv, $tag);
-
-        if ($plaintext === false) {
-            throw new Exception("Fallo al desencriptar credencial. Clave inválida.");
+        if ($decrypted === false) {
+            throw new Exception("Error al descifrar la credencial. Clave inválida.");
         }
 
-        return json_decode($plaintext, true) ?? [];
+        $jsonDecoded = json_decode($decrypted, true);
+        return (json_last_error() === JSON_ERROR_NONE) ? $jsonDecoded : $decrypted;
     }
 
     /**
-     * Obtiene y desencripta una credencial por su ID
+     * Guarda o actualiza una credencial en MariaDB
      */
-    public static function getCredential(string $id): array
+    public function saveCredential(string $name, string $type, array $data, ?string $id = null): string
     {
-        $config = require __DIR__ . '/../../config/database.php';
-        $db = Database::getConnection($config);
+        $id = $id ?? sprintf(
+            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+            mt_rand(0, 0x0fff) | 0x4000, mt_rand(0, 0x3fff) | 0x8000,
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+        );
 
-        $stmt = $db->prepare("SELECT data FROM credentials WHERE id = :id");
+        $encryptedValue = $this->encrypt($data);
+
+        $stmt = $this->db->prepare("
+            INSERT INTO credentials (id, name, type, data)
+            VALUES (:id, :name, :type, :data)
+            ON DUPLICATE KEY UPDATE name = :name_up, data = :data_up, updated_at = NOW()
+        ");
+
+        $stmt->execute([
+            ':id' => $id,
+            ':name' => $name,
+            ':type' => $type,
+            ':data' => $encryptedValue,
+            ':name_up' => $name,
+            ':data_up' => $encryptedValue,
+        ]);
+
+        return $id;
+    }
+
+    /**
+     * Obtiene la lista pública de credenciales (sin revelar las claves)
+     */
+    public function getCredentials(): array
+    {
+        $stmt = $this->db->query("SELECT id, name, type, created_at, updated_at FROM credentials ORDER BY name ASC");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Descifra y recupera los datos reales de una credencial para el motor
+     */
+    public function getCredentialDecrypted(string $id): ?array
+    {
+        $stmt = $this->db->prepare("SELECT type, data FROM credentials WHERE id = :id");
         $stmt->execute([':id' => $id]);
-        $row = $stmt->fetch();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$row) {
-            throw new Exception("Credencial no encontrada: {$id}");
-        }
+        if (!$row) return null;
 
-        return self::decrypt($row['data']);
+        $decryptedData = $this->decrypt($row['data']);
+        return [
+            'type' => $row['type'],
+            'data' => is_array($decryptedData) ? $decryptedData : ['api_key' => $decryptedData]
+        ];
+    }
+
+    /**
+     * Elimina una credencial
+     */
+    public function deleteCredential(string $id): bool
+    {
+        $stmt = $this->db->prepare("DELETE FROM credentials WHERE id = :id");
+        return $stmt->execute([':id' => $id]);
     }
 }

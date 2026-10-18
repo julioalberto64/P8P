@@ -3,6 +3,7 @@
 namespace P8P\Nodes;
 
 use P8P\Interfaces\NodeInterface;
+use P8P\Core\CredentialManager;
 
 class GeminiChatModelNode implements NodeInterface
 {
@@ -12,7 +13,8 @@ class GeminiChatModelNode implements NodeInterface
             'type' => 'gemini_model',
             'name' => 'Google Gemini Chat Model',
             'parameters' => [
-                'api_key' => ['type' => 'string', 'required' => true],
+                'credential_id' => ['type' => 'string', 'required' => false],
+                'api_key' => ['type' => 'string', 'required' => false],
                 'model' => ['type' => 'string', 'default' => 'gemini-3.8-flash'],
                 'temperature' => ['type' => 'float', 'default' => 0.7]
             ]
@@ -21,15 +23,26 @@ class GeminiChatModelNode implements NodeInterface
 
     public function validate(array $parameters): bool
     {
-        return !empty($parameters['api_key']);
+        return !empty($parameters['credential_id']) || !empty($parameters['api_key']);
     }
 
     public function execute(array $parameters, array $context): array
     {
+        $apiKey = $parameters['api_key'] ?? '';
+
+        // Si se proporcionó un ID de credencial, descifrar la clave de MariaDB
+        if (!empty($parameters['credential_id'])) {
+            $cm = new CredentialManager();
+            $cred = $cm->getCredentialDecrypted($parameters['credential_id']);
+            if ($cred && !empty($cred['data']['api_key'])) {
+                $apiKey = $cred['data']['api_key'];
+            }
+        }
+
         return [
             'type' => 'chat_model',
             'provider' => 'gemini',
-            'api_key' => $parameters['api_key'] ?? '',
+            'api_key' => $apiKey,
             'model' => $parameters['model'] ?? 'gemini-3.8-flash',
             'temperature' => (float)($parameters['temperature'] ?? 0.7)
         ];

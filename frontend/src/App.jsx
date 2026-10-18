@@ -3,12 +3,14 @@ import Canvas from './components/Canvas.jsx';
 import AddNodeModal from './components/AddNodeModal.jsx';
 import NodeInspector from './components/NodeInspector.jsx';
 import LoadWorkflowModal from './components/LoadWorkflowModal.jsx';
-import { Play, Plus, Save, Layers, FolderOpen } from 'lucide-react';
+import CredentialsModal from './components/CredentialsModal.jsx';
+import { Play, Plus, Save, Layers, FolderOpen, Key } from 'lucide-react';
 
 export default function App() {
   const [selectedNode, setSelectedNode] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoadModalOpen, setIsLoadModalOpen] = useState(false);
+  const [isCredentialsOpen, setIsCredentialsOpen] = useState(false);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [executionResult, setExecutionResult] = useState(null);
@@ -88,8 +90,8 @@ export default function App() {
       edges: edges.map((e) => ({
         source: e.source,
         target: e.target,
-        sourceHandle: e.sourceHandle, // <-- Incluir handles de origen y destino
-        targetHandle: e.targetHandle  // <-- Necesario para sub-puertos (model, memory, tools)
+        sourceHandle: e.sourceHandle,
+        targetHandle: e.targetHandle
       }))
     };
 
@@ -108,6 +110,7 @@ export default function App() {
       setIsRunning(false);
     }
   };
+
   // 6. Guardar el Workflow en MariaDB (save_workflow.php)
   const handleSaveWorkflow = async () => {
     setIsSaving(true);
@@ -181,6 +184,13 @@ export default function App() {
             </button>
 
             <button
+                onClick={() => setIsCredentialsOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium border border-slate-700 transition"
+            >
+              <Key className="w-3.5 h-3.5 text-indigo-400" /> Credenciales
+            </button>
+
+            <button
                 onClick={handleTestWorkflow}
                 disabled={isRunning || nodes.length === 0}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition shadow-lg shadow-emerald-900/20"
@@ -212,6 +222,12 @@ export default function App() {
               isOpen={isLoadModalOpen}
               onClose={() => setIsLoadModalOpen(false)}
               onLoadWorkflow={handleLoadWorkflow}
+          />
+
+          {/* Modal para gestión de credenciales encriptadas */}
+          <CredentialsModal
+              isOpen={isCredentialsOpen}
+              onClose={() => setIsCredentialsOpen(false)}
           />
 
           {/* Inspector lateral para editar parámetros del nodo */}

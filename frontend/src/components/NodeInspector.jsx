@@ -1,56 +1,32 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Trash2, HelpCircle } from 'lucide-react';
 
 export default function NodeInspector({ selectedNode, onClose, onUpdateNode, onDeleteNode }) {
+    const [credentialsList, setCredentialsList] = useState([]);
+
+    // Cargar la lista pública de credenciales desde MariaDB
+    useEffect(() => {
+        const fetchCredentials = async () => {
+            try {
+                const res = await fetch('http://localhost:8000/credentials.php');
+                const data = await res.json();
+                if (data.success) {
+                    setCredentialsList(data.credentials || []);
+                }
+            } catch (err) {
+                console.error('Error al cargar lista de credenciales:', err);
+            }
+        };
+
+        fetchCredentials();
+    }, [selectedNode]);
+
     if (!selectedNode) return null;
 
     const { id, data } = selectedNode;
     const nodeType = (data.type || '').toLowerCase();
     const parameters = data.parameters || {};
 
-
-    {/* If Condition Form */}
-    {nodeType === 'if_condition' && (
-        <>
-            <div>
-                <label className="block text-slate-300 mb-1 font-medium">Value 1</label>
-                <input
-                    type="text"
-                    value={parameters.value_1 || ''}
-                    onChange={(e) => handleParamChange('value_1', e.target.value)}
-                    placeholder="ej. {{output_text}}"
-                    className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
-                />
-            </div>
-
-            <div>
-                <label className="block text-slate-300 mb-1 font-medium">Operator</label>
-                <select
-                    value={parameters.operator || 'equals'}
-                    onChange={(e) => handleParamChange('operator', e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 text-xs"
-                >
-                    <option value="equals">Equals (==)</option>
-                    <option value="not_equals">Not Equals (!=)</option>
-                    <option value="contains">Contains</option>
-                    <option value="not_contains">Does Not Contain</option>
-                    <option value="is_empty">Is Empty</option>
-                    <option value="is_not_empty">Is Not Empty</option>
-                </select>
-            </div>
-
-            <div>
-                <label className="block text-slate-300 mb-1 font-medium">Value 2</label>
-                <input
-                    type="text"
-                    value={parameters.value_2 || ''}
-                    onChange={(e) => handleParamChange('value_2', e.target.value)}
-                    placeholder="ej. OK"
-                    className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
-                />
-            </div>
-        </>
-    )}
     const handleParamChange = (key, value) => {
         onUpdateNode(id, {
             ...data,
@@ -89,6 +65,76 @@ export default function NodeInspector({ selectedNode, onClose, onUpdateNode, onD
                     />
                 </div>
 
+                {/* If Condition Form */}
+                {nodeType === 'if_condition' && (
+                    <>
+                        <div>
+                            <label className="block text-slate-300 mb-1 font-medium">Value 1</label>
+                            <input
+                                type="text"
+                                value={parameters.value_1 || ''}
+                                onChange={(e) => handleParamChange('value_1', e.target.value)}
+                                placeholder="ej. {{output_text}} o {{title}}"
+                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-slate-300 mb-1 font-medium">Operator</label>
+                            <select
+                                value={parameters.operator || 'equals'}
+                                onChange={(e) => handleParamChange('operator', e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 text-xs"
+                            >
+                                <option value="equals">Equals (==)</option>
+                                <option value="not_equals">Not Equals (!=)</option>
+                                <option value="contains">Contains</option>
+                                <option value="not_contains">Does Not Contain</option>
+                                <option value="is_empty">Is Empty</option>
+                                <option value="is_not_empty">Is Not Empty</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-slate-300 mb-1 font-medium">Value 2</label>
+                            <input
+                                type="text"
+                                value={parameters.value_2 || ''}
+                                onChange={(e) => handleParamChange('value_2', e.target.value)}
+                                placeholder="ej. OK"
+                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                            />
+                        </div>
+                    </>
+                )}
+
+                {/* Set Variable Form */}
+                {nodeType === 'set_variable' && (
+                    <>
+                        <div>
+                            <label className="block text-slate-300 mb-1 font-medium">Variable Name</label>
+                            <input
+                                type="text"
+                                value={parameters.variable_name || ''}
+                                onChange={(e) => handleParamChange('variable_name', e.target.value)}
+                                placeholder="ej. title"
+                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-slate-300 mb-1 font-medium">Variable Value</label>
+                            <input
+                                type="text"
+                                value={parameters.variable_value || ''}
+                                onChange={(e) => handleParamChange('variable_value', e.target.value)}
+                                placeholder="ej. Mi Titulo Personalizado"
+                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                            />
+                        </div>
+                    </>
+                )}
+
                 {/* HTTP Request Form */}
                 {nodeType === 'http_request' && (
                     <>
@@ -97,7 +143,7 @@ export default function NodeInspector({ selectedNode, onClose, onUpdateNode, onD
                             <select
                                 value={parameters.method || 'GET'}
                                 onChange={(e) => handleParamChange('method', e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500"
+                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 text-xs"
                             >
                                 <option value="GET">GET</option>
                                 <option value="POST">POST</option>
@@ -123,7 +169,7 @@ export default function NodeInspector({ selectedNode, onClose, onUpdateNode, onD
                                 rows={2}
                                 value={parameters.headers || ''}
                                 onChange={(e) => handleParamChange('headers', e.target.value)}
-                                placeholder='{"Authorization": "Bearer token"}'
+                                placeholder='{"Content-Type": "application/json"}'
                                 className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
                             />
                         </div>
@@ -134,34 +180,7 @@ export default function NodeInspector({ selectedNode, onClose, onUpdateNode, onD
                                 rows={3}
                                 value={parameters.body || ''}
                                 onChange={(e) => handleParamChange('body', e.target.value)}
-                                placeholder='{"title": "{{title}}"}'
-                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
-                            />
-                        </div>
-                    </>
-                )}
-
-                {/* Set Variable Form */}
-                {nodeType === 'set_variable' && (
-                    <>
-                        <div>
-                            <label className="block text-slate-300 mb-1 font-medium">Variable Name</label>
-                            <input
-                                type="text"
-                                value={parameters.variable_name || ''}
-                                onChange={(e) => handleParamChange('variable_name', e.target.value)}
-                                placeholder="ej. url"
-                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-slate-300 mb-1 font-medium">Variable Value</label>
-                            <input
-                                type="text"
-                                value={parameters.variable_value || ''}
-                                onChange={(e) => handleParamChange('variable_value', e.target.value)}
-                                placeholder="ej. https://jsonplaceholder.typicode.com/todos/1"
+                                placeholder='{"response": "{{output_text}}"}'
                                 className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
                             />
                         </div>
@@ -172,15 +191,31 @@ export default function NodeInspector({ selectedNode, onClose, onUpdateNode, onD
                 {nodeType === 'gemini_model' && (
                     <>
                         <div>
-                            <label className="block text-slate-300 mb-1 font-medium">API Key (Google AI Studio)</label>
-                            <input
-                                type="password"
-                                value={parameters.api_key || ''}
-                                onChange={(e) => handleParamChange('api_key', e.target.value)}
-                                placeholder="AIzaSy..."
-                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
-                            />
+                            <label className="block text-slate-300 mb-1 font-medium">Credencial Guardada</label>
+                            <select
+                                value={parameters.credential_id || ''}
+                                onChange={(e) => handleParamChange('credential_id', e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 text-xs mb-2"
+                            >
+                                <option value="">-- Seleccionar Credencial Segura --</option>
+                                {credentialsList.map((c) => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
                         </div>
+
+                        {!parameters.credential_id && (
+                            <div>
+                                <label className="block text-slate-400 mb-1 font-medium">O API Key Directa (Texto Plano)</label>
+                                <input
+                                    type="password"
+                                    value={parameters.api_key || ''}
+                                    onChange={(e) => handleParamChange('api_key', e.target.value)}
+                                    placeholder="AIzaSy..."
+                                    className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 font-mono text-[11px]"
+                                />
+                            </div>
+                        )}
 
                         <div>
                             <label className="block text-slate-300 mb-1 font-medium">Model</label>
@@ -190,7 +225,6 @@ export default function NodeInspector({ selectedNode, onClose, onUpdateNode, onD
                                 className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 text-xs"
                             >
                                 <option value="gemini-3.8-flash">gemini-3.8-flash (Recomendado)</option>
-                                <option value="gemini-3-flash">gemini-3-flash</option>
                                 <option value="gemini-2.5-flash">gemini-2.5-flash</option>
                                 <option value="gemini-1.5-flash">gemini-1.5-flash</option>
                             </select>
@@ -211,7 +245,7 @@ export default function NodeInspector({ selectedNode, onClose, onUpdateNode, onD
                     </>
                 )}
 
-                {/* Ollama Chat Model Form */}
+                {/* Ollama Model Form */}
                 {nodeType === 'ollama_model' && (
                     <>
                         <div>
@@ -240,18 +274,16 @@ export default function NodeInspector({ selectedNode, onClose, onUpdateNode, onD
 
                 {/* AI Agent Form */}
                 {nodeType === 'ai_agent' && (
-                    <>
-                        <div>
-                            <label className="block text-slate-300 mb-1 font-medium">System Prompt</label>
-                            <textarea
-                                rows={4}
-                                value={parameters.system_prompt || ''}
-                                onChange={(e) => handleParamChange('system_prompt', e.target.value)}
-                                placeholder="Eres un asistente de automatización en P8P..."
-                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 text-[11px]"
-                            />
-                        </div>
-                    </>
+                    <div>
+                        <label className="block text-slate-300 mb-1 font-medium">System Prompt</label>
+                        <textarea
+                            rows={4}
+                            value={parameters.system_prompt || ''}
+                            onChange={(e) => handleParamChange('system_prompt', e.target.value)}
+                            placeholder="Eres un asistente de automatización en P8P..."
+                            className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 focus:outline-none focus:border-indigo-500 text-[11px]"
+                        />
+                    </div>
                 )}
 
                 {/* MCP Tool Form */}
@@ -292,7 +324,7 @@ export default function NodeInspector({ selectedNode, onClose, onUpdateNode, onD
                 <div className="p-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-[11px] text-indigo-300 flex items-start gap-2">
                     <HelpCircle className="w-4 h-4 shrink-0 mt-0.5" />
                     <span>
-            Puedes usar expresiones dinámicas como <code className="bg-slate-900 px-1 py-0.5 rounded text-white">{`{{nombre_variable}}`}</code> o <code className="bg-slate-900 px-1 py-0.5 rounded text-white">{`{{node_id.output.key}}`}</code> para inyectar datos entre nodos.
+            Puedes usar expresiones dinámicas como <code className="bg-slate-900 px-1 py-0.5 rounded text-white">{`{{nombre_variable}}`}</code> o <code className="bg-slate-900 px-1 py-0.5 rounded text-white">{`{{node_id.output_text}}`}</code> para inyectar datos entre nodos.
           </span>
                 </div>
             </div>
