@@ -16,7 +16,6 @@ class GeminiChatModelNode implements NodeInterface
             'description' => 'Modelo de chat LLM de Google Gemini',
             'parameters' => [
                 'credential_id' => ['type' => 'string', 'required' => false],
-                'api_key' => ['type' => 'string', 'required' => false],
                 'model' => ['type' => 'string', 'default' => 'gemini-3.8-flash'],
                 'temperature' => ['type' => 'float', 'default' => 0.7]
             ]

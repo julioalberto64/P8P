@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Canvas from './components/Canvas.jsx';
 import AddNodeModal from './components/AddNodeModal.jsx';
 import NodeInspector from './components/NodeInspector.jsx';
@@ -18,12 +18,35 @@ export default function App() {
   const [workflowId, setWorkflowId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Estado para almacenar los esquemas cargados desde backend PHP (/nodes.php)
+  const [nodeSchemas, setNodeSchemas] = useState([]);
+
+  // Cargar esquemas de nodos registrados desde PHP al iniciar la aplicación
+  useEffect(() => {
+    const fetchSchemas = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/nodes.php');
+        const data = await response.json();
+        if (data.success && Array.isArray(data.nodes)) {
+          setNodeSchemas(data.nodes);
+        }
+      } catch (err) {
+        console.error('Error al obtener esquemas de nodos:', err);
+      }
+    };
+
+    fetchSchemas();
+  }, []);
+
   // 1. Agregar un nuevo nodo al lienzo
   const handleAddNode = (nodeType) => {
     const newNode = {
       id: `node_${Date.now()}`,
       type: 'customNode',
-      position: { x: 250 + nodes.length * 40, y: 150 + nodes.length * 40 },
+      position: {
+        x: 250 + nodes.length * 30,
+        y: 150 + nodes.length * 30
+      },
       data: {
         label: nodeType.label,
         type: nodeType.type,
@@ -143,6 +166,14 @@ export default function App() {
     }
   };
 
+  // Extraer el tipo exacto del nodo seleccionado (buscando en data.type)
+  const selectedNodeType = selectedNode?.data?.type || selectedNode?.type;
+
+  // Encontrar el esquema que coincide con el tipo del nodo seleccionado
+  const selectedNodeSchema = nodeSchemas.find(
+      (schema) => schema.type === selectedNodeType
+  );
+
   return (
       <div className="flex flex-col h-screen w-screen bg-slate-900 text-slate-100 overflow-hidden">
         {/* Top Navbar */}
@@ -200,15 +231,17 @@ export default function App() {
           </div>
         </header>
 
-        {/* Canvas Principal */}
-        <main className="flex-1 relative">
-          <Canvas
-              nodes={nodes}
-              setNodes={setNodes}
-              edges={edges}
-              setEdges={setEdges}
-              onNodeSelect={setSelectedNode}
-          />
+        {/* Canvas Principal y Paneles */}
+        <main className="flex-1 relative flex overflow-hidden">
+          <div className="flex-1 relative">
+            <Canvas
+                nodes={nodes}
+                setNodes={setNodes}
+                edges={edges}
+                setEdges={setEdges}
+                onNodeSelect={setSelectedNode}
+            />
+          </div>
 
           {/* Modal de selección de nuevos nodos */}
           <AddNodeModal
@@ -231,16 +264,19 @@ export default function App() {
           />
 
           {/* Inspector lateral para editar parámetros del nodo */}
-          <NodeInspector
-              selectedNode={selectedNode}
-              onClose={() => setSelectedNode(null)}
-              onUpdateNode={handleUpdateNode}
-              onDeleteNode={handleDeleteNode}
-          />
+          {selectedNode && (
+              <NodeInspector
+                  selectedNode={selectedNode}
+                  nodeSchema={selectedNodeSchema}
+                  onClose={() => setSelectedNode(null)}
+                  onUpdateNode={handleUpdateNode}
+                  onDeleteNode={handleDeleteNode}
+              />
+          )}
 
           {/* Consola inferior con el JSON de respuesta de la API en PHP */}
           {executionResult && (
-              <div className="absolute bottom-4 left-4 right-4 max-h-48 bg-slate-950/90 border border-slate-700 rounded-xl p-3 font-mono text-xs overflow-auto z-20 shadow-2xl">
+              <div className="absolute bottom-4 left-4 right-4 max-h-48 bg-slate-950/90 border border-slate-700 rounded-xl p-3 font-mono text-xs overflow-auto z-30 shadow-2xl">
                 <div className="flex justify-between items-center mb-2 border-b border-slate-800 pb-1 text-slate-400">
                   <span>Resultado de Ejecución (Backend PHP)</span>
                   <button onClick={() => setExecutionResult(null)} className="hover:text-white">✕</button>
