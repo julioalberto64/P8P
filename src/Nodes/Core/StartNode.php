@@ -1,6 +1,6 @@
 <?php
 
-namespace P8P\Nodes;
+namespace P8P\Nodes\Core;
 
 use P8P\Interfaces\NodeInterface;
 
@@ -11,6 +11,7 @@ class StartNode implements NodeInterface
         return [
             'type' => 'start',
             'name' => 'Start Trigger',
+            'icon' => 'Play', 'description' => 'Disparador inicial de ejecución',
             'icon' => 'play',
             'description' => 'Punto de entrada inicial para la ejecución del flujo',
             'parameters' => []

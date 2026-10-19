@@ -14,14 +14,13 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use P8P\Core\Database;
 use P8P\Core\Engine;
-use P8P\Core\EnvLoader;
-use P8P\Nodes\StartNode;
-use P8P\Nodes\HttpRequestNode;
-use P8P\Nodes\SetVariableNode;
-use P8P\Nodes\AiAgentNode;
-use P8P\Nodes\OllamaChatModelNode;
-use P8P\Nodes\McpToolNode;
-use P8P\Nodes\IfConditionNode;
+use P8P\Nodes\Core\AiAgentNode;
+use P8P\Nodes\Core\HttpRequestNode;
+use P8P\Nodes\Core\IfConditionNode;
+use P8P\Nodes\Core\McpToolNode;
+use P8P\Nodes\Core\SetVariableNode;
+use P8P\Nodes\Core\StartNode;
+use P8P\Nodes\Premium\OllamaChatModelNode;
 
 $workflowId = $_GET['id'] ?? null;
 

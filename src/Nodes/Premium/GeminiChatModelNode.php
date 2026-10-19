@@ -1,9 +1,9 @@
 <?php
 
-namespace P8P\Nodes;
+namespace P8P\Nodes\Premium;
 
-use P8P\Interfaces\NodeInterface;
 use P8P\Core\CredentialManager;
+use P8P\Interfaces\NodeInterface;
 
 class GeminiChatModelNode implements NodeInterface
 {
@@ -12,6 +12,8 @@ class GeminiChatModelNode implements NodeInterface
         return [
             'type' => 'gemini_model',
             'name' => 'Google Gemini Chat Model',
+            'icon' => 'Sparkles',
+            'description' => 'Modelo de chat LLM de Google Gemini',
             'parameters' => [
                 'credential_id' => ['type' => 'string', 'required' => false],
                 'api_key' => ['type' => 'string', 'required' => false],

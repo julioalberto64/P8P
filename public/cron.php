@@ -3,34 +3,18 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use P8P\Core\Engine;
+use P8P\Core\NodeRegistry;
 use P8P\Core\QueueManager;
 use P8P\Core\Database;
-use P8P\Nodes\StartNode;
-use P8P\Nodes\SetVariableNode;
-use P8P\Nodes\IfConditionNode;
-use P8P\Nodes\HttpRequestNode;
-use P8P\Nodes\AiAgentNode;
-use P8P\Nodes\GeminiChatModelNode;
-use P8P\Nodes\OllamaChatModelNode;
-use P8P\Nodes\McpToolNode;
-use P8P\Nodes\ChatTriggerNode;
 
-// Inicializar motor y registrar nodos
+// Inicializar motor y auto-descubrir nodos
 $engine = new Engine();
-$engine->registerNode(new StartNode());
-$engine->registerNode(new SetVariableNode());
-$engine->registerNode(new IfConditionNode());
-$engine->registerNode(new HttpRequestNode());
-$engine->registerNode(new AiAgentNode());
-$engine->registerNode(new GeminiChatModelNode());
-$engine->registerNode(new OllamaChatModelNode());
-$engine->registerNode(new McpToolNode());
-$engine->registerNode(new ChatTriggerNode());
+$registry = new NodeRegistry($engine);
+$registry->autoDiscover();
 
 $queueManager = new QueueManager();
 
 try {
-    // Procesar hasta 5 trabajos pendientes por lote
     $jobs = $queueManager->getPendingJobs(5);
 
     if (empty($jobs)) {
@@ -49,7 +33,6 @@ try {
         $jobId = $job['id'];
         $payload = json_decode($job['payload'], true) ?? [];
 
-        // 1. Si el payload contiene un workflow_id pero no los nodos directamente, cargarlo de MariaDB
         if (empty($payload['nodes']) && !empty($job['workflow_id'])) {
             $config = require __DIR__ . '/../config/database.php';
             $db = Database::getConnection($config);
@@ -62,7 +45,7 @@ try {
             }
         }
 
-        // 2. NORMALIZACIÓN DE NODOS: Mapear 'type' desde 'data.type' si viene como 'customNode'
+        // Normalización de nodos customNode
         if (!empty($payload['nodes'])) {
             $normalizedNodes = [];
             foreach ($payload['nodes'] as $node) {
@@ -70,7 +53,7 @@ try {
 
                 $normalizedNodes[] = [
                     'id' => $node['id'],
-                    'type' => $realType, // <-- Tipo real reconocido por Engine.php
+                    'type' => $realType,
                     'data' => [
                         'is_start' => $node['data']['isStart'] ?? $node['data']['is_start'] ?? false,
                         'parameters' => $node['data']['parameters'] ?? []
@@ -80,7 +63,6 @@ try {
             $payload['nodes'] = $normalizedNodes;
         }
 
-        // 3. Ejecutar el workflow normalizado
         try {
             $result = $engine->executeWorkflow($payload);
             $queueManager->markCompleted($jobId, $result);
@@ -90,17 +72,11 @@ try {
         }
     }
 
-    $response = [
-        'success' => true,
-        'processed_jobs' => $processedCount,
-        'timestamp' => date('Y-m-d H:i:s')
-    ];
-
     if (php_sapi_name() === 'cli') {
         echo "[" . date('Y-m-d H:i:s') . "] Procesados {$processedCount} trabajos con éxito.\n";
     } else {
         header("Content-Type: application/json");
-        echo json_encode($response);
+        echo json_encode(['success' => true, 'processed_jobs' => $processedCount]);
     }
 
 } catch (\Throwable $e) {

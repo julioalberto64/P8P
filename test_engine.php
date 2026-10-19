@@ -3,7 +3,7 @@
 require_once __DIR__ . '/vendor/autoload.php';
 
 use P8P\Core\Engine;
-use P8P\Nodes\HttpRequestNode;
+use P8P\Nodes\Core\HttpRequestNode;
 
 // 1. Instanciar el motor y registrar nodos
 $engine = new Engine();

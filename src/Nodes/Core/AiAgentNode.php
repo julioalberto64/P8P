@@ -1,11 +1,11 @@
 <?php
 
-namespace P8P\Nodes;
+namespace P8P\Nodes\Core;
 
-use P8P\Interfaces\NodeInterface;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 use InvalidArgumentException;
+use P8P\Interfaces\NodeInterface;
 use RuntimeException;
 
 class AiAgentNode implements NodeInterface
@@ -15,6 +15,7 @@ class AiAgentNode implements NodeInterface
         return [
             'type' => 'ai_agent',
             'name' => 'AI Agent',
+            'icon' => 'Bot', 'description' => 'Agente autónomo con bucle ReAct',
             'parameters' => [
                 'system_prompt' => ['type' => 'string', 'default' => 'Eres un asistente útil y preciso.']
             ]

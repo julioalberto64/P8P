@@ -1,6 +1,6 @@
 <?php
 
-namespace P8P\Nodes;
+namespace P8P\Nodes\Core;
 
 use P8P\Interfaces\NodeInterface;
 
@@ -11,6 +11,7 @@ class McpToolNode implements NodeInterface
         return [
             'type' => 'mcp_tool',
             'name' => 'MCP Server Tool',
+            'icon' => 'Wrench', 'description' => 'Set MCP server tool parameters for the flow',
             'parameters' => [
                 'server_url' => ['type' => 'string', 'required' => true],
                 'tool_name' => ['type' => 'string', 'required' => true]

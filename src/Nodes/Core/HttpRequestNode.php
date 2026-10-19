@@ -1,10 +1,10 @@
 <?php
 
-namespace P8P\Nodes;
+namespace P8P\Nodes\Core;
 
-use P8P\Interfaces\NodeInterface;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
+use P8P\Interfaces\NodeInterface;
 
 class HttpRequestNode implements NodeInterface
 {

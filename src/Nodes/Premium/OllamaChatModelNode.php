@@ -1,9 +1,8 @@
 <?php
 
-namespace P8P\Nodes;
+namespace P8P\Nodes\Premium;
 
 use P8P\Interfaces\NodeInterface;
-use GuzzleHttp\Client;
 
 class OllamaChatModelNode implements NodeInterface
 {
@@ -12,6 +11,7 @@ class OllamaChatModelNode implements NodeInterface
         return [
             'type' => 'ollama_model',
             'name' => 'Ollama Chat Model',
+            'icon' => 'Cpu', 'category' => 'Premium', 'description' => 'Modelo LLM local o remoto',
             'parameters' => [
                 'endpoint' => ['type' => 'string', 'default' => 'http://127.0.0.1:11434'],
                 'model' => ['type' => 'string', 'default' => 'llama3']

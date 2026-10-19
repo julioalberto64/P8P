@@ -1,6 +1,6 @@
 <?php
 
-namespace P8P\Nodes;
+namespace P8P\Nodes\Core;
 
 use P8P\Interfaces\NodeInterface;
 
@@ -11,6 +11,7 @@ class IfConditionNode implements NodeInterface
         return [
             'type' => 'if_condition',
             'name' => 'If Condition',
+            'icon' => 'GitFork', 'description' => 'Bifurcación lógica condicional',
             'parameters' => [
                 'value_1' => ['type' => 'string', 'default' => ''],
                 'operator' => ['type' => 'string', 'default' => 'equals'], // equals, not_equals, contains, not_contains, is_empty, is_not_empty

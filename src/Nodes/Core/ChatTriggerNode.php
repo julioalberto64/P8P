@@ -1,6 +1,6 @@
 <?php
 
-namespace P8P\Nodes;
+namespace P8P\Nodes\Core;
 
 use P8P\Interfaces\NodeInterface;
 
@@ -11,6 +11,7 @@ class ChatTriggerNode implements NodeInterface
         return [
             'type' => 'chat_trigger',
             'name' => 'Chat Trigger',
+            'icon' => 'MessageSquare', 'description' => 'Detonador de chat flotante JS',
             'parameters' => [
                 'session_id' => ['type' => 'string', 'default' => 'default_session'],
                 'user_message' => ['type' => 'string', 'default' => '']

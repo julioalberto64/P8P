@@ -1,6 +1,6 @@
 <?php
 
-namespace P8P\Nodes;
+namespace P8P\Nodes\Core;
 
 use P8P\Interfaces\NodeInterface;
 
@@ -11,8 +11,7 @@ class SetVariableNode implements NodeInterface
         return [
             'type' => 'set_variable',
             'name' => 'Set Variable',
-            'icon' => 'variable',
-            'description' => 'Asigna o transforma variables dentro del contexto del flujo',
+            'icon' => 'Sliders', 'description' => 'Asigna o transforma variables dentro del contexto del flujo',
             'parameters' => [
                 'variable_name' => ['type' => 'string', 'required' => true],
                 'variable_value' => ['type' => 'string', 'required' => true]

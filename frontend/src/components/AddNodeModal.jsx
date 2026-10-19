@@ -1,114 +1,99 @@
-import React from 'react';
-import {Globe, Play, Sliders, Bot, Cpu, Database, Wrench, Sparkles, X, GitFork, MessageSquare} from 'lucide-react';
-const nodeTypes = [
-    {
-        type: 'start',
-        label: 'Start Trigger',
-        description: 'Disparador inicial de mensajes o eventos',
-        icon: Play,
-        isStart: true,
-    },
-    {
-        type: 'chat_trigger',
-        label: 'Chat Trigger',
-        description: 'Disparador de mensajes desde el Widget de Chat JS',
-        icon: MessageSquare,
-        isStart: true,
-    },
-    {
-        type: 'set_variable',
-        label: 'Set Variable',
-        description: 'Define y asigna variables personalizadas (ej. {{title}})',
-        icon: Sliders,
-        isStart: false,
-    },
-    {
-        type: 'http_request',
-        label: 'HTTP Request',
-        description: 'Petición GET, POST, PUT o DELETE a una API',
-        icon: Globe,
-        isStart: false,
-    },
-    {
-        type: 'ai_agent',
-        label: 'AI Agent',
-        description: 'Agente autónomo con bucle ReAct (Model + Memory + Tools)',
-        icon: Bot,
-        isStart: false,
-    },
-    {
-        type: 'gemini_model',
-        label: 'Google Gemini Chat Model',
-        description: 'Modelo LLM en la nube de Google (Gemini 1.5 Flash / Pro)',
-        icon: Sparkles,
-        isStart: false,
-    },
-    {
-        type: 'if_condition',
-        label: 'If Condition',
-        description: 'Bifurcación lógica condicional (TRUE / FALSE)',
-        icon: GitFork,
-        isStart: false,
-    },
-    {
-        type: 'ollama_model',
-        label: 'Ollama Chat Model',
-        description: 'Modelo LLM local o remoto (Llama 3, Mistral, Qwen)',
-        icon: Cpu,
-        isStart: false,
-    },
-    {
-        type: 'simple_memory',
-        label: 'Simple Memory',
-        description: 'Memoria buffer de conversación',
-        icon: Database,
-        isStart: false,
-    },
-    {
-        type: 'mcp_tool',
-        label: 'MCP Server Tool',
-        description: 'Conector de herramientas Model Context Protocol (JSON-RPC)',
-        icon: Wrench,
-        isStart: false,
-    },
-];
+import React, { useState, useEffect } from 'react';
+import * as LucideIcons from 'lucide-react';
+import { X, Box, Sparkles, ShieldCheck, Layers } from 'lucide-react';
 
 export default function AddNodeModal({ isOpen, onClose, onAddNode }) {
+    const [nodes, setNodes] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (isOpen) {
+            fetch('http://localhost:8000/nodes.php')
+                .then((res) => res.json())
+                .then((data) => {
+                    if (data.success) setNodes(data.nodes);
+                })
+                .catch((err) => console.error('Error al cargar nodos dinámicos:', err))
+                .finally(() => setLoading(false));
+        }
+    }, [isOpen]);
+
     if (!isOpen) return null;
+
+    // Renderiza el ícono dinámico devuelto por PHP o Box por defecto
+    const renderIcon = (iconName) => {
+        if (!iconName) return <Box className="w-5 h-5" />;
+        const IconComponent = LucideIcons[iconName] || LucideIcons[iconName.charAt(0).toUpperCase() + iconName.slice(1)];
+        return IconComponent ? <IconComponent className="w-5 h-5" /> : <Box className="w-5 h-5" />;
+    };
+
+    // Renderiza el Badge correspondiente a la categoría
+    const renderCategoryBadge = (category = 'Core') => {
+        const cat = category.toUpperCase();
+        if (cat === 'PREMIUM') {
+            return (
+                <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded font-bold flex items-center gap-1">
+          <Sparkles className="w-2.5 h-2.5" /> PREMIUM
+        </span>
+            );
+        }
+        if (cat === 'COMMUNITY') {
+            return (
+                <span className="text-[9px] bg-sky-500/20 text-sky-300 border border-sky-500/30 px-1.5 py-0.5 rounded font-bold">
+          COMMUNITY
+        </span>
+            );
+        }
+        return (
+            <span className="text-[9px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.5 rounded font-bold">
+        CORE
+      </span>
+        );
+    };
 
     return (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md p-5 shadow-2xl">
+            <div className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md p-5 shadow-2xl flex flex-col max-h-[80vh]">
                 <div className="flex items-center justify-between border-b border-slate-700 pb-3 mb-4">
-                    <h3 className="font-semibold text-slate-100">Agregar Nodo o Sub-conector</h3>
+                    <h3 className="font-semibold text-slate-100">Agregar Nodo o Conector</h3>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-700">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
-                    {nodeTypes.map((item) => {
-                        const Icon = item.icon;
-                        return (
+                {loading ? (
+                    <div className="text-center py-8 text-xs text-slate-400">Descubriendo nodos instalados...</div>
+                ) : (
+                    <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+                        {nodes.map((node) => (
                             <button
-                                key={item.type}
+                                key={node.type}
                                 onClick={() => {
-                                    onAddNode(item);
+                                    onAddNode({
+                                        type: node.type,
+                                        label: node.name,
+                                        isStart: node.is_start || false
+                                    });
                                     onClose();
                                 }}
-                                className="w-full flex items-start gap-3.5 p-3 rounded-lg bg-slate-900/60 hover:bg-slate-700/60 border border-slate-700/50 hover:border-indigo-500/50 transition text-left group"
+                                className="w-full flex items-start gap-3 p-3 rounded-lg bg-slate-900/60 hover:bg-slate-700/60 border border-slate-700/50 transition text-left group"
                             >
-                                <div className="p-2.5 rounded-lg bg-indigo-500/20 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition">
-                                    <Icon className="w-5 h-5" />
+                                <div className="p-2 rounded-lg bg-indigo-500/20 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition">
+                                    {renderIcon(node.icon)}
                                 </div>
-                                <div>
-                                    <div className="text-sm font-semibold text-slate-200">{item.label}</div>
-                                    <div className="text-xs text-slate-400 mt-0.5">{item.description}</div>
+                                <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-semibold text-slate-200">{node.name}</span>
+                                        {renderCategoryBadge(node.category)}
+                                    </div>
+                                    <div className="text-[11px] text-slate-400 mt-0.5">
+                                        {node.description || 'Sin descripción'}
+                                    </div>
                                 </div>
                             </button>
-                        );
-                    })}
-                </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
