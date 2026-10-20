@@ -4,13 +4,15 @@ import AddNodeModal from './components/AddNodeModal.jsx';
 import NodeInspector from './components/NodeInspector.jsx';
 import LoadWorkflowModal from './components/LoadWorkflowModal.jsx';
 import CredentialsModal from './components/CredentialsModal.jsx';
-import { Play, Plus, Save, Layers, FolderOpen, Key } from 'lucide-react';
+import ExecutionLogsModal from './components/ExecutionLogsModal.jsx';
+import { Play, Plus, Save, Layers, FolderOpen, Key, Activity } from 'lucide-react';
 
 export default function App() {
   const [selectedNode, setSelectedNode] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoadModalOpen, setIsLoadModalOpen] = useState(false);
   const [isCredentialsOpen, setIsCredentialsOpen] = useState(false);
+  const [isLogsOpen, setIsLogsOpen] = useState(false);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [executionResult, setExecutionResult] = useState(null);
@@ -222,6 +224,13 @@ export default function App() {
             </button>
 
             <button
+                onClick={() => setIsLogsOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium border border-slate-700 transition"
+            >
+              <Activity className="w-3.5 h-3.5 text-indigo-400" /> Logs
+            </button>
+
+            <button
                 onClick={handleTestWorkflow}
                 disabled={isRunning || nodes.length === 0}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition shadow-lg shadow-emerald-900/20"
@@ -261,6 +270,12 @@ export default function App() {
           <CredentialsModal
               isOpen={isCredentialsOpen}
               onClose={() => setIsCredentialsOpen(false)}
+          />
+
+          {/* Modal para historial de ejecuciones y logs */}
+          <ExecutionLogsModal
+              isOpen={isLogsOpen}
+              onClose={() => setIsLogsOpen(false)}
           />
 
           {/* Inspector lateral para editar parámetros del nodo */}
