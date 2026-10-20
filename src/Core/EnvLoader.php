@@ -4,7 +4,7 @@ namespace P8P\Core;
 
 class EnvLoader
 {
-    public static function load(string $path): void
+    public static function load(string $path, bool $overwrite = true): void
     {
         if (!file_exists($path)) {
             return;
@@ -21,6 +21,10 @@ class EnvLoader
                 [$name, $value] = explode('=', $line, 2);
                 $name = trim($name);
                 $value = trim($value, " \t\n\r\0\x0B\"'");
+
+                if (!$overwrite && (isset($_ENV[$name]) || getenv($name) !== false)) {
+                    continue;
+                }
 
                 $_ENV[$name] = $value;
                 putenv("{$name}={$value}");

@@ -1,0 +1,3 @@
+interface:
+  display_name: "Crear nodos P8P"
+  short_description: "Crear conectores PHP con esquema y credenciales"

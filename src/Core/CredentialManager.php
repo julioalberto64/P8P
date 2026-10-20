@@ -13,12 +13,16 @@ class CredentialManager
 
     public function __construct()
     {
+        // Resolver el entorno aquí para que HTTP, cron y todos los nodos usen la misma clave.
+        EnvLoader::load(__DIR__ . '/../../.env', false);
+        $secret = $_ENV['APP_SECRET'] ?? getenv('APP_SECRET');
+        if (!is_string($secret) || trim($secret) === '') {
+            throw new Exception('APP_SECRET no está configurada. No se pueden cifrar las credenciales.');
+        }
+        $this->encryptionKey = hash('sha256', $secret, true);
+
         $config = require __DIR__ . '/../../config/database.php';
         $this->db = Database::getConnection($config);
-
-        // Obtener la clave secreta desde el entorno o un fallback seguro
-        $secret = $_ENV['APP_SECRET'] ?? getenv('APP_SECRET') ?? 'p8p_default_secret_key_32bytes_len!!';
-        $this->encryptionKey = hash('sha256', $secret, true);
     }
 
     /**
@@ -47,7 +51,10 @@ class CredentialManager
      */
     public function decrypt(string $encryptedData): mixed
     {
-        $decoded = base64_decode($encryptedData);
+        $decoded = base64_decode($encryptedData, true);
+        if ($decoded === false || strlen($decoded) < 28) {
+            throw new Exception('Error al descifrar la credencial. Datos inválidos.');
+        }
         $iv = substr($decoded, 0, 12);
         $tag = substr($decoded, 12, 16);
         $ciphertext = substr($decoded, 28);
@@ -60,6 +67,20 @@ class CredentialManager
             $iv,
             $tag
         );
+
+        if ($decrypted === false) {
+            // Compatibilidad de lectura: credentials.php antes no cargaba .env.
+            // getenv() devolvía false y hash() lo convertía en cadena vacía.
+            // Nunca se usa esta clave para guardar nuevas credenciales.
+            $decrypted = openssl_decrypt(
+                $ciphertext,
+                'aes-256-gcm',
+                hash('sha256', '', true),
+                OPENSSL_RAW_DATA,
+                $iv,
+                $tag
+            );
+        }
 
         if ($decrypted === false) {
             throw new Exception("Error al descifrar la credencial. Clave inválida.");
