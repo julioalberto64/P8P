@@ -1,11 +1,32 @@
 <?php
 
+error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
+ini_set('display_errors', '0');
+
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use P8P\Core\Engine;
 use P8P\Core\NodeRegistry;
 use P8P\Core\QueueManager;
 use P8P\Core\Database;
+
+// Cargar variables del .env para ejecuciones CLI (Cron Job) o HTTP
+$envPath = __DIR__ . '/../.env';
+if (file_exists($envPath)) {
+    $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if (strpos($line, '#') === 0 || strpos($line, '=') === false) continue;
+        list($key, $val) = explode('=', $line, 2);
+        $key = trim($key);
+        $val = trim($val, " \t\n\r\0\x0B\"'");
+        if (!getenv($key)) {
+            putenv("{$key}={$val}");
+            $_ENV[$key] = $val;
+            $_SERVER[$key] = $val;
+        }
+    }
+}
 
 // Inicializar motor y auto-descubrir nodos
 $engine = new Engine();

@@ -102,6 +102,7 @@ return array(
     'GuzzleHttp\\TransferStats' => $vendorDir . '/guzzlehttp/guzzle/src/TransferStats.php',
     'GuzzleHttp\\TransportSharing' => $vendorDir . '/guzzlehttp/guzzle/src/TransportSharing.php',
     'GuzzleHttp\\Utils' => $vendorDir . '/guzzlehttp/guzzle/src/Utils.php',
+    'P8P\\Core\\AuthMiddleware' => $baseDir . '/src/Core/AuthMiddleware.php',
     'P8P\\Core\\CredentialManager' => $baseDir . '/src/Core/CredentialManager.php',
     'P8P\\Core\\Database' => $baseDir . '/src/Core/Database.php',
     'P8P\\Core\\Engine' => $baseDir . '/src/Core/Engine.php',

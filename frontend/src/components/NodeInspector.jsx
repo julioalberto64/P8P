@@ -14,7 +14,21 @@ export default function NodeInspector({
     useEffect(() => {
         const fetchCredentials = async () => {
             try {
-                const res = await fetch('http://localhost:8000/credentials.php');
+                const token = localStorage.getItem('p8p_token');
+                const res = await fetch('http://localhost:8000/credentials.php', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    }
+                });
+
+                if (res.status === 401) {
+                    localStorage.removeItem('p8p_token');
+                    localStorage.removeItem('p8p_user');
+                    window.location.reload();
+                    return;
+                }
+
                 const data = await res.json();
                 if (data.success) {
                     setCredentialsList(data.credentials || []);

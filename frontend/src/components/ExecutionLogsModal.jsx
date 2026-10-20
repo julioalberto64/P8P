@@ -9,7 +9,21 @@ export default function ExecutionLogsModal({ isOpen, onClose }) {
     const fetchLogs = async () => {
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:8000/logs.php');
+            const token = localStorage.getItem('p8p_token');
+            const res = await fetch('http://localhost:8000/logs.php', {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                }
+            });
+
+            if (res.status === 401) {
+                localStorage.removeItem('p8p_token');
+                localStorage.removeItem('p8p_user');
+                window.location.reload();
+                return;
+            }
+
             const data = await res.json();
             if (data.success) {
                 setLogs(data.logs || []);
@@ -96,14 +110,14 @@ export default function ExecutionLogsModal({ isOpen, onClose }) {
                                                     <XCircle className="w-3.5 h-3.5 text-rose-400" />
                                                 )}
                                                 <span className="text-xs font-mono font-semibold text-slate-200">
-                          #{log.id.toString().substring(0, 8)}
-                        </span>
+                                                    #{log.id.toString().substring(0, 8)}
+                                                </span>
                                             </div>
                                             <div className="text-[10px] text-slate-500 flex items-center gap-2">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-2.5 h-2.5" />
-                            {log.execution_time_ms} ms
-                        </span>
+                                                <span className="flex items-center gap-1">
+                                                    <Clock className="w-2.5 h-2.5" />
+                                                    {log.execution_time_ms} ms
+                                                </span>
                                                 <span>•</span>
                                                 <span>{log.created_at}</span>
                                             </div>
@@ -158,14 +172,14 @@ export default function ExecutionLogsModal({ isOpen, onClose }) {
                                                         <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
                                                             nodeExec.status === 'success' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'
                                                         }`}>
-                              {nodeExec.status} ({nodeExec.execution_time_ms} ms)
-                            </span>
+                                                            {nodeExec.status} ({nodeExec.execution_time_ms} ms)
+                                                        </span>
                                                     </div>
                                                     <div className="text-[11px] text-slate-400 space-y-1">
                                                         <div className="text-slate-500 text-[10px] font-semibold uppercase">Output:</div>
                                                         <pre className="bg-slate-900 p-2 rounded text-[10px] text-slate-300 overflow-x-auto border border-slate-800">
-                              {JSON.stringify(nodeExec.output, null, 2)}
-                            </pre>
+                                                            {JSON.stringify(nodeExec.output, null, 2)}
+                                                        </pre>
                                                     </div>
                                                 </div>
                                             ))}
@@ -176,8 +190,8 @@ export default function ExecutionLogsModal({ isOpen, onClose }) {
                                 <div className="space-y-1 pt-2">
                                     <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Payload Completo (JSON)</h4>
                                     <pre className="p-3 bg-slate-950 border border-slate-800 rounded-xl font-mono text-[11px] text-slate-300 overflow-x-auto max-h-40">
-                    {JSON.stringify(selectedLog.result, null, 2)}
-                  </pre>
+                                        {JSON.stringify(selectedLog.result, null, 2)}
+                                    </pre>
                                 </div>
                             </>
                         ) : (

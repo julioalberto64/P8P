@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import * as LucideIcons from 'lucide-react';
-import { X, Box, Sparkles, ShieldCheck, Layers } from 'lucide-react';
+import { X, Box, Sparkles } from 'lucide-react';
 
 export default function AddNodeModal({ isOpen, onClose, onAddNode }) {
     const [nodes, setNodes] = useState([]);
@@ -8,15 +8,40 @@ export default function AddNodeModal({ isOpen, onClose, onAddNode }) {
 
     useEffect(() => {
         if (isOpen) {
-            fetch('http://localhost:8000/nodes.php')
-                .then((res) => res.json())
-                .then((data) => {
-                    if (data.success) setNodes(data.nodes);
-                })
-                .catch((err) => console.error('Error al cargar nodos dinámicos:', err))
-                .finally(() => setLoading(false));
+            fetchNodes();
         }
     }, [isOpen]);
+
+    const fetchNodes = async () => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('p8p_token');
+
+            const res = await fetch('http://localhost:8000/nodes.php', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                }
+            });
+
+            if (res.status === 401) {
+                localStorage.removeItem('p8p_token');
+                localStorage.removeItem('p8p_user');
+                window.location.reload();
+                return;
+            }
+
+            const data = await res.json();
+            if (data.success) {
+                setNodes(data.nodes);
+            }
+        } catch (err) {
+            console.error('Error al cargar nodos dinámicos:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -33,21 +58,21 @@ export default function AddNodeModal({ isOpen, onClose, onAddNode }) {
         if (cat === 'PREMIUM') {
             return (
                 <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded font-bold flex items-center gap-1">
-          <Sparkles className="w-2.5 h-2.5" /> PREMIUM
-        </span>
+                    <Sparkles className="w-2.5 h-2.5" /> PREMIUM
+                </span>
             );
         }
         if (cat === 'COMMUNITY') {
             return (
                 <span className="text-[9px] bg-sky-500/20 text-sky-300 border border-sky-500/30 px-1.5 py-0.5 rounded font-bold">
-          COMMUNITY
-        </span>
+                    COMMUNITY
+                </span>
             );
         }
         return (
             <span className="text-[9px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.5 rounded font-bold">
-        CORE
-      </span>
+                CORE
+            </span>
         );
     };
 

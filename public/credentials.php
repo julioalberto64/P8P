@@ -1,29 +1,41 @@
 <?php
 
+error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
+ini_set('display_errors', '0');
+
+// Encabezados CORS completos (permite la cabecera Authorization para el Token Bearer)
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Headers: Content-Type");
 header("Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 header("Content-Type: application/json");
 
+// Manejo de Preflight OPTIONS (Responde antes de la validación del middleware)
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
     exit(0);
 }
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use P8P\Core\CredentialManager;
+use P8P\Core\AuthMiddleware;
 
-$cm = new CredentialManager();
-$method = $_SERVER['REQUEST_METHOD'];
+// Interceptar y proteger el endpoint con el Token Bearer del Admin
+AuthMiddleware::check();
 
 try {
+    $cm = new CredentialManager();
+    $method = $_SERVER['REQUEST_METHOD'];
+
     if ($method === 'GET') {
         echo json_encode(['success' => true, 'credentials' => $cm->getCredentials()]);
         exit;
     }
 
     if ($method === 'POST') {
-        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        $rawInput = file_get_contents('php://input');
+        $input = json_decode($rawInput, true) ?? [];
+
         $name = trim($input['name'] ?? '');
         $type = trim($input['type'] ?? 'gemini_api');
         $data = $input['data'] ?? [];
@@ -31,12 +43,16 @@ try {
 
         if (empty($name) || empty($data)) {
             http_response_code(400);
-            echo json_encode(['error' => 'Nombre y datos de credencial son requeridos']);
+            echo json_encode(['success' => false, 'error' => 'Nombre y datos de credencial son requeridos']);
             exit;
         }
 
         $credentialId = $cm->saveCredential($name, $type, $data, $id);
-        echo json_encode(['success' => true, 'id' => $credentialId, 'message' => 'Credencial guardada y encriptada']);
+        echo json_encode([
+            'success' => true,
+            'id' => $credentialId,
+            'message' => 'Credencial guardada y encriptada con éxito'
+        ]);
         exit;
     }
 
@@ -44,15 +60,15 @@ try {
         $id = $_GET['id'] ?? null;
         if (!$id) {
             http_response_code(400);
-            echo json_encode(['error' => 'ID de credencial requerido']);
+            echo json_encode(['success' => false, 'error' => 'ID de credencial requerido']);
             exit;
         }
 
         $cm->deleteCredential($id);
-        echo json_encode(['success' => true, 'message' => 'Credencial eliminada']);
+        echo json_encode(['success' => true, 'message' => 'Credencial eliminada correctamente']);
         exit;
     }
 } catch (\Throwable $e) {
     http_response_code(500);
-    echo json_encode(['error' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }

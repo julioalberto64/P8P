@@ -1,0 +1,15 @@
+# Configuración del Sistema
+APP_NAME=P8P_Engine
+APP_ENV=local
+APP_SECRET=c3Ryb25nX3NlY3JldF9rZXlfZm9yX3A4cF9lbmNyeXB0aW9uXzIwMjY=
+
+# Configuración de MariaDB
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=p8p_db
+DB_USERNAME=root
+DB_PASSWORD=master123
+
+ADMIN_USER=admin
+ADMIN_PASS=TuPasswordSegura2026!
+ADMIN_SECRET_KEY=p8p_secret_key_change_me_in_production

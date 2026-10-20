@@ -14,9 +14,27 @@ export default function LoadWorkflowModal({ isOpen, onClose, onLoadWorkflow }) {
     const fetchWorkflows = async () => {
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:8000/get_workflows.php');
+            // Extraer el token guardado en el navegador durante el inicio de sesión
+            const token = localStorage.getItem('p8p_token');
+
+            const res = await fetch('http://localhost:8000/get_workflows.php', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                }
+            });
+
+            // Si el backend devuelve 401 Unauthorized, expira la sesión local
+            if (res.status === 401) {
+                localStorage.removeItem('p8p_token');
+                localStorage.removeItem('p8p_user');
+                window.location.reload();
+                return;
+            }
+
             const data = await res.json();
-            if (data.success) {
+            if (data.success && Array.isArray(data.workflows)) {
                 setWorkflows(data.workflows);
             }
         } catch (err) {
@@ -65,8 +83,8 @@ export default function LoadWorkflowModal({ isOpen, onClose, onLoadWorkflow }) {
                                     </div>
                                 </div>
                                 <span className="text-[10px] font-mono bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-1 rounded">
-                  {wf.id.substring(0, 8)}...
-                </span>
+                                    {wf.id.substring(0, 8)}...
+                                </span>
                             </button>
                         ))}
                     </div>

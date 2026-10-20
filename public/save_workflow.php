@@ -1,27 +1,36 @@
 <?php
 
+error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
+ini_set('display_errors', '0');
+
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Headers: Content-Type");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 header("Content-Type: application/json");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
     exit(0);
 }
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use P8P\Core\Database;
+use P8P\Core\AuthMiddleware;
 
-$input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+// Interceptar y proteger el endpoint
+AuthMiddleware::check();
+
+$rawInput = file_get_contents('php://input');
+$input = json_decode($rawInput, true) ?? $_POST;
 
 if (empty($input['nodes'])) {
     http_response_code(400);
-    echo json_encode(['error' => 'No hay estructura de nodos para guardar']);
+    echo json_encode(['success' => false, 'error' => 'No hay estructura de nodos para guardar']);
     exit;
 }
 
-$workflowId = $input['id'] ?? sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+$workflowId = !empty($input['id']) ? $input['id'] : sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
     mt_rand(0, 0xffff), mt_rand(0, 0xffff),
     mt_rand(0, 0xffff),
     mt_rand(0, 0x0fff) | 0x4000,
@@ -37,7 +46,6 @@ $structure = json_encode([
 ]);
 
 try {
-    // Cargar credenciales desde el archivo de configuración
     $config = require __DIR__ . '/../config/database.php';
     $db = Database::getConnection($config);
 
@@ -65,5 +73,5 @@ try {
     ]);
 } catch (\Throwable $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Error en base de datos: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'error' => 'Error en base de datos: ' . $e->getMessage()]);
 }

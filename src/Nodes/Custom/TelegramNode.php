@@ -95,19 +95,24 @@ class TelegramNode implements NodeInterface
         $botToken = trim(preg_replace('/\s+/', '', $botToken));
         $chatId   = trim(preg_replace('/\s+/', '', $chatId));
 
+        // Control de longitud máxima permitido por la API de Telegram (4096 caracteres)
+        if (mb_strlen($message, 'UTF-8') > 4000) {
+            $message = mb_substr($message, 0, 3980, 'UTF-8') . "\n\n...[Mensaje cortado por exceder el límite de caracteres]";
+        }
+
         // Petición cURL a la API de Telegram
         $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
 
+        // Primer intento enviado sin parse_mode HTML estricto para evitar errores de sintaxis en respuestas largas de IA
         $postFields = [
             'chat_id' => $chatId,
-            'text' => $message,
-            'parse_mode' => 'HTML'
+            'text' => $message
         ];
 
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postFields));
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 

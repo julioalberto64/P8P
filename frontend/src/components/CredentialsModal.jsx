@@ -11,7 +11,21 @@ export default function CredentialsModal({ isOpen, onClose }) {
 
     const fetchCredentials = async () => {
         try {
-            const res = await fetch('http://localhost:8000/credentials.php');
+            const token = localStorage.getItem('p8p_token');
+            const res = await fetch('http://localhost:8000/credentials.php', {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                }
+            });
+
+            if (res.status === 401) {
+                localStorage.removeItem('p8p_token');
+                localStorage.removeItem('p8p_user');
+                window.location.reload();
+                return;
+            }
+
             const data = await res.json();
             if (data.success) setCredentials(data.credentials);
         } catch (err) {
@@ -29,15 +43,26 @@ export default function CredentialsModal({ isOpen, onClose }) {
 
         setLoading(true);
         try {
+            const token = localStorage.getItem('p8p_token');
             const res = await fetch('http://localhost:8000/credentials.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
                 body: JSON.stringify({
                     name,
                     type,
                     data: { api_key: apiKey }
                 })
             });
+
+            if (res.status === 401) {
+                localStorage.removeItem('p8p_token');
+                localStorage.removeItem('p8p_user');
+                window.location.reload();
+                return;
+            }
 
             const data = await res.json();
             if (data.success) {
@@ -56,7 +81,22 @@ export default function CredentialsModal({ isOpen, onClose }) {
     const handleDelete = async (id) => {
         if (!confirm('¿Seguro que deseas eliminar esta credencial?')) return;
         try {
-            await fetch(`http://localhost:8000/credentials.php?id=${id}`, { method: 'DELETE' });
+            const token = localStorage.getItem('p8p_token');
+            const res = await fetch(`http://localhost:8000/credentials.php?id=${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                }
+            });
+
+            if (res.status === 401) {
+                localStorage.removeItem('p8p_token');
+                localStorage.removeItem('p8p_user');
+                window.location.reload();
+                return;
+            }
+
             fetchCredentials();
         } catch (err) {
             alert('Error al eliminar credencial');

@@ -161,6 +161,7 @@ class ComposerStaticInite63f0275461d896318a7bcc1ac8fb871
         'GuzzleHttp\\TransferStats' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/TransferStats.php',
         'GuzzleHttp\\TransportSharing' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/TransportSharing.php',
         'GuzzleHttp\\Utils' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/Utils.php',
+        'P8P\\Core\\AuthMiddleware' => __DIR__ . '/../..' . '/src/Core/AuthMiddleware.php',
         'P8P\\Core\\CredentialManager' => __DIR__ . '/../..' . '/src/Core/CredentialManager.php',
         'P8P\\Core\\Database' => __DIR__ . '/../..' . '/src/Core/Database.php',
         'P8P\\Core\\Engine' => __DIR__ . '/../..' . '/src/Core/Engine.php',

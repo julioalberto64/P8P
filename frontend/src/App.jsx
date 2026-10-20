@@ -5,9 +5,15 @@ import NodeInspector from './components/NodeInspector.jsx';
 import LoadWorkflowModal from './components/LoadWorkflowModal.jsx';
 import CredentialsModal from './components/CredentialsModal.jsx';
 import ExecutionLogsModal from './components/ExecutionLogsModal.jsx';
-import { Play, Plus, Save, Layers, FolderOpen, Key, Activity } from 'lucide-react';
+import LoginModal from './components/LoginModal.jsx';
+import { Play, Plus, Save, Layers, FolderOpen, Key, Activity, LogOut, User } from 'lucide-react';
 
 export default function App() {
+  // Estado de Autenticación Admin
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+
+  // Estados del lienzo y modal
   const [selectedNode, setSelectedNode] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoadModalOpen, setIsLoadModalOpen] = useState(false);
@@ -23,11 +29,46 @@ export default function App() {
   // Estado para almacenar los esquemas cargados desde backend PHP (/nodes.php)
   const [nodeSchemas, setNodeSchemas] = useState([]);
 
-  // Cargar esquemas de nodos registrados desde PHP al iniciar la aplicación
+  // Validar si existe sesión guardada al cargar la aplicación
   useEffect(() => {
+    const token = localStorage.getItem('p8p_token');
+    const storedUser = localStorage.getItem('p8p_user');
+
+    if (token && storedUser) {
+      setIsAuthenticated(true);
+      setUser(storedUser);
+    } else {
+      setIsAuthenticated(false);
+    }
+  }, []);
+
+  // Función helper para realizar peticiones HTTP autenticadas con Token Bearer
+  const authenticatedFetch = async (url, options = {}) => {
+    const token = localStorage.getItem('p8p_token');
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    };
+
+    const response = await fetch(url, { ...options, headers });
+
+    // Si el backend devuelve 401 Unauthorized, expira la sesión local
+    if (response.status === 401) {
+      handleLogout();
+      throw new Error('Sesión expirada o no autorizada. Por favor, inicia sesión nuevamente.');
+    }
+
+    return response;
+  };
+
+  // Cargar esquemas de nodos registrados desde PHP al iniciar la aplicación o autenticarse
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
     const fetchSchemas = async () => {
       try {
-        const response = await fetch('http://localhost:8000/nodes.php');
+        const response = await authenticatedFetch('http://localhost:8000/nodes.php');
         const data = await response.json();
         if (data.success && Array.isArray(data.nodes)) {
           setNodeSchemas(data.nodes);
@@ -38,7 +79,20 @@ export default function App() {
     };
 
     fetchSchemas();
-  }, []);
+  }, [isAuthenticated]);
+
+  // Gestores de Login y Logout
+  const handleLoginSuccess = (userData) => {
+    setIsAuthenticated(true);
+    setUser(userData.username);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('p8p_token');
+    localStorage.removeItem('p8p_user');
+    setIsAuthenticated(false);
+    setUser(null);
+  };
 
   // 1. Agregar un nuevo nodo al lienzo
   const handleAddNode = (nodeType) => {
@@ -78,10 +132,10 @@ export default function App() {
     setSelectedNode(null);
   };
 
-  // 4. Cargar un workflow guardado desde MariaDB (get_workflows.php)
+  // 4. Cargar un workflow guardado desde MariaDB
   const handleLoadWorkflow = async (id) => {
     try {
-      const response = await fetch(`http://localhost:8000/get_workflows.php?id=${id}`);
+      const response = await authenticatedFetch(`http://localhost:8000/get_workflows.php?id=${id}`);
       const data = await response.json();
 
       if (data.success && data.workflow) {
@@ -121,9 +175,8 @@ export default function App() {
     };
 
     try {
-      const response = await fetch('http://localhost:8000/api.php', {
+      const response = await authenticatedFetch('http://localhost:8000/api.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
@@ -148,16 +201,15 @@ export default function App() {
     };
 
     try {
-      const response = await fetch('http://localhost:8000/save_workflow.php', {
+      const response = await authenticatedFetch('http://localhost:8000/save_workflow.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
       const data = await response.json();
       if (data.success) {
         setWorkflowId(data.workflow_id);
-        alert(`Workflow Saved ID: ${data.workflow_id}`);
+        alert(`Workflow Guardado con Éxito. ID: ${data.workflow_id}`);
       } else {
         alert(`Error al guardar: ${data.error}`);
       }
@@ -168,13 +220,22 @@ export default function App() {
     }
   };
 
-  // Extraer el tipo exacto del nodo seleccionado (buscando en data.type)
+  // Extraer el tipo exacto del nodo seleccionado
   const selectedNodeType = selectedNode?.data?.type || selectedNode?.type;
 
   // Encontrar el esquema que coincide con el tipo del nodo seleccionado
   const selectedNodeSchema = nodeSchemas.find(
       (schema) => schema.type === selectedNodeType
   );
+
+  // Si el usuario no está autenticado, solo renderiza la pantalla de bloqueo de login
+  if (!isAuthenticated) {
+    return (
+        <div className="w-screen h-screen bg-slate-950 flex items-center justify-center">
+          <LoginModal isOpen={true} onLoginSuccess={handleLoginSuccess} />
+        </div>
+    );
+  }
 
   return (
       <div className="flex flex-col h-screen w-screen bg-slate-900 text-slate-100 overflow-hidden">
@@ -205,7 +266,7 @@ export default function App() {
                 onClick={() => setIsLoadModalOpen(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium transition border border-slate-700"
             >
-              <FolderOpen className="w-3.5 h-3.5 text-indigo-400" /> Open
+              <FolderOpen className="w-3.5 h-3.5 text-indigo-400" /> Abrir
             </button>
 
             <button
@@ -213,7 +274,7 @@ export default function App() {
                 disabled={isSaving || nodes.length === 0}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 rounded-lg text-xs font-medium transition border border-slate-700"
             >
-              <Save className="w-3.5 h-3.5" /> {isSaving ? 'Guardando...' : 'Save'}
+              <Save className="w-3.5 h-3.5" /> {isSaving ? 'Guardando...' : 'Guardar'}
             </button>
 
             <button
@@ -236,6 +297,22 @@ export default function App() {
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition shadow-lg shadow-emerald-900/20"
             >
               <Play className="w-3.5 h-3.5" /> {isRunning ? 'Ejecutando...' : 'Test Workflow'}
+            </button>
+
+            {/* Separador e información del usuario activo */}
+            <div className="h-5 w-[1px] bg-slate-800 mx-1"></div>
+
+            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg text-xs">
+              <User className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="text-slate-300 font-medium">{user}</span>
+            </div>
+
+            <button
+                onClick={handleLogout}
+                title="Cerrar Sesión"
+                className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-lg transition"
+            >
+              <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
         </header>
