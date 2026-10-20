@@ -71,9 +71,34 @@
         chatMessages.scrollTop = chatMessages.scrollHeight;
     };
 
+    let sending = false;
+    const waitForResponse = async (jobId) => {
+        const deadline = Date.now() + 180000;
+        while (Date.now() < deadline) {
+            const res = await fetch(`${baseUrl}/chat_response.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ job_id: jobId, workflow_id: workflowId, session_id: sessionId }),
+                signal: AbortSignal.timeout(10000)
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                throw new Error(data.error || 'No se pudo obtener la respuesta.');
+            }
+            if (data.status === 'completed') {
+                return data.response ?? 'El flujo terminó sin una respuesta de chat configurada.';
+            }
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+        throw new Error('La respuesta está tardando demasiado. Revisa que el worker de P8P esté activo.');
+    };
+
     const sendMessage = async () => {
         const text = chatInput.value.trim();
-        if (!text) return;
+        if (!text || sending) return;
+
+        sending = true;
+        chatSend.disabled = true;
 
         addMessage(text, 'user');
         chatInput.value = '';
@@ -86,17 +111,21 @@
                     workflow_id: workflowId,
                     session_id: sessionId,
                     message: text
-                })
+                }),
+                signal: AbortSignal.timeout(10000)
             });
 
             const data = await res.json();
-            if (data.success) {
-                addMessage('Mensaje recibido. Procesando respuesta...', 'bot');
+            if (res.ok && data.success && typeof data.job_id === 'string') {
+                addMessage(await waitForResponse(data.job_id), 'bot');
             } else {
                 addMessage('Error: ' + (data.error || 'No se pudo enviar el mensaje'), 'bot');
             }
         } catch (err) {
-            addMessage('Error de conexión con el servidor', 'bot');
+            addMessage(err.message || 'Error de conexión con el servidor', 'bot');
+        } finally {
+            sending = false;
+            chatSend.disabled = false;
         }
     };
 

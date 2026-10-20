@@ -30,6 +30,7 @@ class GeminiChatModelNode implements NodeInterface
                     'default' => 'gemini-3.8-flash',
                     'options' => [
                         ['value' => 'gemini-3.8-flash', 'label' => 'Gemini 3.8 Flash (Rápido / Recomendado)'],
+                        ['value' => 'gemini-3.5-flash-lite', 'label' => 'Gemini 3.5 Flash Lite (Rápido / Recomendado)'],
                         ['value' => 'gemini-1.5-pro', 'label' => 'Gemini 1.5 Pro (Complejo / Razonamiento)'],
                         ['value' => 'gemini-1.5-flash', 'label' => 'Gemini 1.5 Flash (Balanceado)']
                     ]
