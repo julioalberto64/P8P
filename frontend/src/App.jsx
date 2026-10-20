@@ -157,7 +157,7 @@ export default function App() {
       const data = await response.json();
       if (data.success) {
         setWorkflowId(data.workflow_id);
-        alert(`Workflow guardado con éxito en MariaDB. ID: ${data.workflow_id}`);
+        alert(`Workflow Saved ID: ${data.workflow_id}`);
       } else {
         alert(`Error al guardar: ${data.error}`);
       }

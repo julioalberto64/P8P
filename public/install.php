@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&$step == 2) {
 
         CREATE TABLE IF NOT EXISTS queue_jobs (
             id VARCHAR(36) NOT NULL,
-            workflow_id VARCHAR(36) NULL,
+            workflow_id VARCHAR(255) NULL,
             payload LONGTEXT NOT NULL,
             status ENUM('pending', 'processing', 'completed', 'failed') NOT NULL DEFAULT 'pending',
             attempts INT NOT NULL DEFAULT 0,

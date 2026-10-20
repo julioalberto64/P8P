@@ -31,9 +31,15 @@ try {
 
     foreach ($jobs as $job) {
         $jobId = $job['id'];
-        $payload = json_decode($job['payload'], true) ?? [];
 
-        if (empty($payload['nodes']) && !empty($job['workflow_id'])) {
+        // 1. Decodificar el payload que contiene la entrada del usuario (message / user_message, session_id)
+        $jobPayload = json_decode($job['payload'], true) ?? [];
+        $workflowStructure = [];
+
+        // 2. Cargar la estructura del workflow desde la base de datos
+        if (!empty($jobPayload['nodes'])) {
+            $workflowStructure = $jobPayload;
+        } elseif (!empty($job['workflow_id'])) {
             $config = require __DIR__ . '/../config/database.php';
             $db = Database::getConnection($config);
             $stmt = $db->prepare("SELECT structure FROM workflows WHERE id = :id");
@@ -41,30 +47,50 @@ try {
             $row = $stmt->fetch();
 
             if ($row) {
-                $payload = json_decode($row['structure'], true);
+                $workflowStructure = json_decode($row['structure'], true) ?? [];
             }
         }
 
-        // Normalización de nodos customNode
-        if (!empty($payload['nodes'])) {
-            $normalizedNodes = [];
-            foreach ($payload['nodes'] as $node) {
-                $realType = $node['data']['type'] ?? $node['type'] ?? 'default';
-
-                $normalizedNodes[] = [
-                    'id' => $node['id'],
-                    'type' => $realType,
-                    'data' => [
-                        'is_start' => $node['data']['isStart'] ?? $node['data']['is_start'] ?? false,
-                        'parameters' => $node['data']['parameters'] ?? []
-                    ]
-                ];
-            }
-            $payload['nodes'] = $normalizedNodes;
+        if (empty($workflowStructure['nodes'])) {
+            $queueManager->markFailed($jobId, "No se encontró una estructura de nodos válida para el trabajo.");
+            continue;
         }
+
+        // Extraer el mensaje entrante del widget / cURL
+        $incomingMessage = $jobPayload['user_message'] ?? $jobPayload['message'] ?? '';
+        $incomingSession = $jobPayload['session_id'] ?? ('session_' . time());
+
+        // 3. Normalizar nodos e INYECTAR las variables de entrada en los parámetros del nodo disparador (is_start)
+        $normalizedNodes = [];
+        foreach ($workflowStructure['nodes'] as $node) {
+            $realType = $node['data']['type'] ?? $node['type'] ?? 'default';
+            $isStart  = $node['data']['isStart'] ?? $node['data']['is_start'] ?? false;
+            $params   = $node['data']['parameters'] ?? [];
+
+            // Si es el nodo de inicio (chat_trigger o start), le inyectamos los datos reales del payload
+            if ($isStart || $realType === 'chat_trigger' || $realType === 'start') {
+                $params['user_message'] = $incomingMessage;
+                $params['session_id']   = $incomingSession;
+            }
+
+            $normalizedNodes[] = [
+                'id'   => $node['id'],
+                'type' => $realType,
+                'data' => [
+                    'is_start'   => $isStart,
+                    'parameters' => $params
+                ]
+            ];
+        }
+
+        $workflowPayload = [
+            'nodes' => $normalizedNodes,
+            'edges' => $workflowStructure['edges'] ?? []
+        ];
 
         try {
-            $result = $engine->executeWorkflow($payload);
+            // Se ejecuta pasándole únicamente la estructura normalizada
+            $result = $engine->executeWorkflow($workflowPayload);
             $queueManager->markCompleted($jobId, $result);
             $processedCount++;
         } catch (\Throwable $e) {

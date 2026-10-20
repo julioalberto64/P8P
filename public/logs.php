@@ -16,13 +16,9 @@ require_once __DIR__ . '/../vendor/autoload.php';
 use P8P\Core\Database;
 
 try {
-    // 1. Cargar la configuración estandarizada de la base de datos
     $config = require __DIR__ . '/../config/database.php';
-
-    // 2. Obtener la conexión existente mediante la clase Database
     $db = Database::getConnection($config);
 
-    // 3. Consultar las últimas 50 ejecuciones usando solo las columnas existentes
     $stmt = $db->prepare("
         SELECT id, workflow_id, status, error_message, payload, result, created_at, updated_at 
         FROM queue_jobs 
@@ -33,12 +29,10 @@ try {
 
     $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 4. Formatear resultados leyendo el tiempo de ejecución desde el JSON o timestamps
     $formattedLogs = array_map(function($log) {
         $resultData = !empty($log['result']) ? json_decode($log['result'], true) : null;
         $payloadData = !empty($log['payload']) ? json_decode($log['payload'], true) : null;
 
-        // Extraer el tiempo de ejecución del JSON result, o calcular la diferencia en ms entre updated_at y created_at
         $executionTimeMs = 0;
         if (isset($resultData['execution_time_ms'])) {
             $executionTimeMs = (float)$resultData['execution_time_ms'];
@@ -52,10 +46,10 @@ try {
             'id' => $log['id'],
             'workflow_id' => $log['workflow_id'],
             'status' => $log['status'],
-            'error_message' => $log['error_message'],
+            'error_message' => $log['error_message'], // Exponer el mensaje de error de MariaDB
             'execution_time_ms' => $executionTimeMs,
             'payload' => $payloadData,
-            'result' => $resultData,
+            'result' => $resultData ?? ['error' => $log['error_message']],
             'created_at' => $log['created_at']
         ];
     }, $logs ?: []);

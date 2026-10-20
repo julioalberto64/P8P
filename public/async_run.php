@@ -1,11 +1,16 @@
 <?php
 
+error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
+ini_set('display_errors', '0');
+
+// Encabezados CORS para integración en cualquier sitio web externo
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 header("Content-Type: application/json");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
     exit(0);
 }
 
@@ -17,19 +22,24 @@ try {
     $rawInput = file_get_contents('php://input');
     $data = json_decode($rawInput, true) ?? $_POST;
 
-    $workflowId  = $data['workflow_id'] ?? null;
-    $sessionId   = $data['session_id'] ?? 'guest_' . time();
+// Sanitizar y limitar a 255 caracteres
+    $workflowId = isset($data['workflow_id']) ? substr(trim($data['workflow_id']), 0, 255) : null;    $sessionId   = $data['session_id'] ?? 'guest_' . time();
     $userMessage = $data['message'] ?? $data['user_message'] ?? '';
 
     if (empty($workflowId)) {
-        echo json_encode(['success' => false, 'error' => 'workflow_id es requerido']);
+        echo json_encode(['success' => false, 'error' => 'El parámetro workflow_id es requerido']);
+        exit;
+    }
+
+    if (empty($userMessage)) {
+        echo json_encode(['success' => false, 'error' => 'El mensaje del usuario no puede estar vacío']);
         exit;
     }
 
     $config = require __DIR__ . '/../config/database.php';
     $db = Database::getConnection($config);
 
-    // Guardar el mensaje entrante en la cola de trabajos (queue_jobs)
+    // Generar ID UUID v4 único para el trabajo
     $jobId = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
         mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff),
         mt_rand(0, 0x0fff) | 0x4000, mt_rand(0, 0x3fff) | 0x8000,
@@ -42,6 +52,7 @@ try {
         'received_at' => date('Y-m-d H:i:s')
     ]);
 
+    // Insertar el trabajo en estado "pending" en MariaDB
     $stmt = $db->prepare("
         INSERT INTO queue_jobs (id, workflow_id, payload, status, created_at) 
         VALUES (:id, :workflow_id, :payload, 'pending', NOW())
@@ -56,8 +67,12 @@ try {
     echo json_encode([
         'success' => true,
         'job_id' => $jobId,
-        'message' => 'Mensaje recibido correctamente en el motor P8P'
+        'status' => 'pending',
+        'message' => 'Mensaje enviado a la cola de procesamiento de P8P'
     ]);
 } catch (\Throwable $e) {
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Error al procesar el mensaje: ' . $e->getMessage()
+    ]);
 }

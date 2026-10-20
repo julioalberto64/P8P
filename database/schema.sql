@@ -18,8 +18,8 @@ CREATE TABLE IF NOT EXISTS workflows (
 
 -- 2. Tabla para la cola de ejecuciones asíncronas en segundo plano
 CREATE TABLE IF NOT EXISTS queue_jobs (
-    id VARCHAR(36) NOT NULL,
-    workflow_id VARCHAR(36) NULL,
+    id VARCHAR(255) NOT NULL,
+    workflow_id VARCHAR(255) NULL,
     payload LONGTEXT NOT NULL,
     status ENUM('pending', 'processing', 'completed', 'failed') NOT NULL DEFAULT 'pending',
     attempts INT NOT NULL DEFAULT 0,

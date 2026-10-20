@@ -1,134 +1,105 @@
 (function () {
-    function initP8PChat() {
-        // Configuración del Widget
-        const P8P_CONFIG = {
-            apiUrl: window.P8P_API_URL || 'http://localhost:8000',
-            workflowId: window.P8P_WORKFLOW_ID || '',
-            title: 'Asistente P8P'
-        };
+    const scriptTag = document.currentScript;
+    const baseUrl = scriptTag ? scriptTag.src.replace('/p8p-chat.js', '') : 'http://localhost:8000';
+    const workflowId = scriptTag ? scriptTag.getAttribute('data-workflow-id') : null;
 
-        const sessionId = 'session_' + Math.random().toString(36).substring(2, 9);
+    if (!workflowId) {
+        console.error('P8P Chat Error: Falta el atributo data-workflow-id en el tag <script>');
+        return;
+    }
 
-        // Inyectar Estilos CSS
-        const style = document.createElement('style');
-        style.innerHTML = `
-      #p8p-chat-button { position: fixed; bottom: 20px; right: 20px; background: #4f46e5; color: white; border: none; border-radius: 50%; width: 50px; height: 50px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 9999; font-size: 20px; }
-      #p8p-chat-box { position: fixed; bottom: 80px; right: 20px; width: 340px; height: 450px; background: #0f172a; border: 1px solid #334155; border-radius: 12px; display: none; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 9999; font-family: sans-serif; overflow: hidden; }
-      #p8p-chat-header { background: #1e293b; padding: 12px; color: #f8fafc; font-weight: bold; font-size: 14px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; }
-      #p8p-chat-messages { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
-      .p8p-msg { max-width: 80%; padding: 8px 12px; border-radius: 8px; line-height: 1.4; word-break: break-word; }
-      .p8p-user { align-self: flex-end; background: #4f46e5; color: white; }
-      .p8p-bot { align-self: flex-start; background: #334155; color: #f8fafc; }
-      #p8p-chat-input-area { padding: 8px; border-top: 1px solid #334155; display: flex; gap: 6px; background: #0f172a; }
-      #p8p-chat-input { flex: 1; background: #1e293b; border: 1px solid #334155; color: white; padding: 8px; border-radius: 6px; outline: none; font-size: 12px; }
-      #p8p-chat-send { background: #4f46e5; border: none; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
+    const sessionId = 'session_' + Math.random().toString(36).substring(2, 9);
+
+    // Inyectar Estilos CSS
+    const style = document.createElement('style');
+    style.innerHTML = `
+        #p8p-chat-widget { position: fixed; bottom: 20px; right: 20px; z-index: 999999; font-family: system-ui, -apple-system, sans-serif; }
+        #p8p-chat-button { width: 56px; height: 56px; border-radius: 50%; background: #4f46e5; color: white; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
+        #p8p-chat-button:hover { transform: scale(1.05); }
+        #p8p-chat-window { display: none; width: 360px; height: 500px; background: #0f172a; border: 1px solid #1e293b; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); flex-direction: column; overflow: hidden; margin-bottom: 12px; }
+        #p8p-chat-header { background: #1e293b; color: #f8fafc; padding: 14px; font-weight: 600; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+        #p8p-chat-messages { flex: 1; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .p8p-msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.4; word-break: break-word; }
+        .p8p-msg-user { background: #4f46e5; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .p8p-msg-bot { background: #1e293b; color: #e2e8f0; align-self: flex-start; border-bottom-left-radius: 2px; border: 1px solid #334155; }
+        #p8p-chat-input-container { padding: 12px; border-top: 1px solid #1e293b; display: flex; gap: 8px; background: #0f172a; }
+        #p8p-chat-input { flex: 1; background: #1e293b; border: 1px solid #334155; color: #f8fafc; padding: 10px 12px; border-radius: 8px; font-size: 13px; outline: none; }
+        #p8p-chat-send { background: #4f46e5; color: white; border: none; padding: 0 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; }
     `;
-        document.head.appendChild(style);
+    document.head.appendChild(style);
 
-        // Crear HTML del Chat
-        const chatBtn = document.createElement('button');
-        chatBtn.id = 'p8p-chat-button';
-        chatBtn.innerHTML = '💬';
-
-        const chatBox = document.createElement('div');
-        chatBox.id = 'p8p-chat-box';
-        chatBox.innerHTML = `
-      <div id="p8p-chat-header">
-        <span>${P8P_CONFIG.title}</span>
-        <span style="cursor:pointer;" id="p8p-chat-close">✕</span>
-      </div>
-      <div id="p8p-chat-messages">
-        <div class="p8p-msg p8p-bot">¡Hola! ¿En qué puedo ayudarte hoy?</div>
-      </div>
-      <div id="p8p-chat-input-area">
-        <input type="text" id="p8p-chat-input" placeholder="Escribe un mensaje..." />
-        <button id="p8p-chat-send">Enviar</button>
-      </div>
+    // Contenedor HTML del Widget
+    const widget = document.createElement('div');
+    widget.id = 'p8p-chat-widget';
+    widget.innerHTML = `
+        <div id="p8p-chat-window">
+            <div id="p8p-chat-header">
+                <span>Asistente P8P</span>
+                <span id="p8p-chat-close" style="cursor:pointer; font-size: 16px;">✕</span>
+            </div>
+            <div id="p8p-chat-messages">
+                <div class="p8p-msg p8p-msg-bot">¡Hola! ¿En qué puedo ayudarte hoy?</div>
+            </div>
+            <div id="p8p-chat-input-container">
+                <input type="text" id="p8p-chat-input" placeholder="Escribe tu mensaje..." />
+                <button id="p8p-chat-send">Enviar</button>
+            </div>
+        </div>
+        <button id="p8p-chat-button">💬</button>
     `;
+    document.body.appendChild(widget);
 
-        document.body.appendChild(chatBtn);
-        document.body.appendChild(chatBox);
+    // Elementos DOM
+    const chatWindow = document.getElementById('p8p-chat-window');
+    const chatButton = document.getElementById('p8p-chat-button');
+    const chatClose = document.getElementById('p8p-chat-close');
+    const chatInput = document.getElementById('p8p-chat-input');
+    const chatSend = document.getElementById('p8p-chat-send');
+    const chatMessages = document.getElementById('p8p-chat-messages');
 
-        // Eventos de apertura/cierre
-        chatBtn.onclick = () => chatBox.style.display = chatBox.style.display === 'flex' ? 'none' : 'flex';
-        document.getElementById('p8p-chat-close').onclick = () => chatBox.style.display = 'none';
+    // Manejadores de Eventos
+    chatButton.onclick = () => {
+        chatWindow.style.display = chatWindow.style.display === 'flex' ? 'none' : 'flex';
+    };
+    chatClose.onclick = () => chatWindow.style.display = 'none';
 
-        // Función de Envío y Polling Asíncrono
-        async function sendMessage() {
-            const input = document.getElementById('p8p-chat-input');
-            const text = input.value.trim();
-            if (!text) return;
+    const addMessage = (text, type) => {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `p8p-msg p8p-msg-${type}`;
+        msgDiv.innerText = text;
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    };
 
-            appendMessage(text, 'p8p-user');
-            input.value = '';
+    const sendMessage = async () => {
+        const text = chatInput.value.trim();
+        if (!text) return;
 
-            const loadingMsg = appendMessage('Pensando...', 'p8p-bot');
+        addMessage(text, 'user');
+        chatInput.value = '';
 
-            try {
-                // 1. Encolar la ejecución en P8P
-                const res = await fetch(`${P8P_CONFIG.apiUrl}/async_run.php`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        workflow_id: P8P_CONFIG.workflowId,
-                        session_id: sessionId,
-                        user_message: text
-                    })
-                });
+        try {
+            const res = await fetch(`${baseUrl}/async_run.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    workflow_id: workflowId,
+                    session_id: sessionId,
+                    message: text
+                })
+            });
 
-                const data = await res.json();
-                if (!data.job_id) throw new Error('No se generó el Job ID');
-
-                // 2. Consultar el estado (Polling cada 1.5s)
-                const pollInterval = setInterval(async () => {
-                    const statusRes = await fetch(`${P8P_CONFIG.apiUrl}/async_run.php?job_id=${data.job_id}`);
-                    const statusData = await statusRes.json();
-
-                    if (statusData.job && statusData.job.status === 'completed') {
-                        clearInterval(pollInterval);
-
-                        // Extraer la última respuesta de la IA del historial
-                        const result = statusData.job.result;
-                        let botResponse = 'Respuesta recibida.';
-
-                        if (result && result.final_context) {
-                            for (const key in result.final_context) {
-                                if (result.final_context[key].output_text) {
-                                    botResponse = result.final_context[key].output_text;
-                                }
-                            }
-                        }
-
-                        loadingMsg.textContent = botResponse;
-                    } else if (statusData.job && statusData.job.status === 'failed') {
-                        clearInterval(pollInterval);
-                        loadingMsg.textContent = 'Ocurrió un error al procesar tu solicitud.';
-                    }
-                }, 1500);
-
-            } catch (err) {
-                loadingMsg.textContent = 'Error de conexión con el servidor P8P.';
+            const data = await res.json();
+            if (data.success) {
+                addMessage('Mensaje recibido. Procesando respuesta...', 'bot');
+            } else {
+                addMessage('Error: ' + (data.error || 'No se pudo enviar el mensaje'), 'bot');
             }
+        } catch (err) {
+            addMessage('Error de conexión con el servidor', 'bot');
         }
+    };
 
-        function appendMessage(text, className) {
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `p8p-msg ${className}`;
-            msgDiv.textContent = text;
-            const container = document.getElementById('p8p-chat-messages');
-            container.appendChild(msgDiv);
-            container.scrollTop = container.scrollHeight;
-            return msgDiv;
-        }
-
-        document.getElementById('p8p-chat-send').onclick = sendMessage;
-        document.getElementById('p8p-chat-input').onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
-    }
-
-    // Esperar a que el DOM esté listo antes de insertar elementos
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initP8PChat);
-    } else {
-        initP8PChat();
-    }
+    chatSend.onclick = sendMessage;
+    chatInput.onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
 })();
