@@ -1,382 +1,296 @@
-import React, { useState, useEffect } from 'react';
-import Canvas from './components/Canvas.jsx';
-import AddNodeModal from './components/AddNodeModal.jsx';
-import NodeInspector from './components/NodeInspector.jsx';
-import LoadWorkflowModal from './components/LoadWorkflowModal.jsx';
-import CredentialsModal from './components/CredentialsModal.jsx';
-import ExecutionLogsModal from './components/ExecutionLogsModal.jsx';
-import LoginModal from './components/LoginModal.jsx';
-import { Play, Plus, Save, Layers, FolderOpen, Key, Activity, LogOut, User } from 'lucide-react';
+import React, { useState } from 'react';
+import Canvas from './components/Canvas';
+import AddNodeModal from './components/AddNodeModal';
+import LoadWorkflowModal from './components/LoadWorkflowModal';
+import CredentialsModal from './components/CredentialsModal';
+import ExecutionLogsModal from './components/ExecutionLogsModal';
+import NodeInspector from './components/NodeInspector';
+import NewWorkflowModal from './components/NewWorkflowModal';
+import { FilePlus, FolderOpen, Save, Play, Key, Activity, Plus, Copy, Check } from 'lucide-react';
 
 export default function App() {
-  // Estado de Autenticación Admin
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
+  const [workflowId, setWorkflowId] = useState(null);
+  const [workflowName, setWorkflowName] = useState('Mi Workflow P8P');
+  const [copiedId, setCopiedId] = useState(false);
 
-  // Estados del lienzo y modal
-  const [selectedNode, setSelectedNode] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // Estado de Modales
+  const [isAddNodeOpen, setIsAddNodeOpen] = useState(false);
   const [isLoadModalOpen, setIsLoadModalOpen] = useState(false);
   const [isCredentialsOpen, setIsCredentialsOpen] = useState(false);
   const [isLogsOpen, setIsLogsOpen] = useState(false);
-  const [nodes, setNodes] = useState([]);
-  const [edges, setEdges] = useState([]);
-  const [executionResult, setExecutionResult] = useState(null);
-  const [isRunning, setIsRunning] = useState(false);
-  const [workflowId, setWorkflowId] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
 
-  // Estado para almacenar los esquemas cargados desde backend PHP (/nodes.php)
-  const [nodeSchemas, setNodeSchemas] = useState([]);
+  // Inspector
+  const [selectedNode, setSelectedNode] = useState(null);
 
-  // Validar si existe sesión guardada al cargar la aplicación
-  useEffect(() => {
-    const token = localStorage.getItem('p8p_token');
-    const storedUser = localStorage.getItem('p8p_user');
-
-    if (token && storedUser) {
-      setIsAuthenticated(true);
-      setUser(storedUser);
-    } else {
-      setIsAuthenticated(false);
-    }
-  }, []);
-
-  // Función helper para realizar peticiones HTTP autenticadas con Token Bearer
-  const authenticatedFetch = async (url, options = {}) => {
-    const token = localStorage.getItem('p8p_token');
-    const headers = {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-    };
-
-    const response = await fetch(url, { ...options, headers });
-
-    // Si el backend devuelve 401 Unauthorized, expira la sesión local
-    if (response.status === 401) {
-      handleLogout();
-      throw new Error('Sesión expirada o no autorizada. Por favor, inicia sesión nuevamente.');
-    }
-
-    return response;
-  };
-
-  // Cargar esquemas de nodos registrados desde PHP al iniciar la aplicación o autenticarse
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    const fetchSchemas = async () => {
-      try {
-        const response = await authenticatedFetch('http://localhost:8000/nodes.php');
-        const data = await response.json();
-        if (data.success && Array.isArray(data.nodes)) {
-          setNodeSchemas(data.nodes);
-        }
-      } catch (err) {
-        console.error('Error al obtener esquemas de nodos:', err);
-      }
-    };
-
-    fetchSchemas();
-  }, [isAuthenticated]);
-
-  // Gestores de Login y Logout
-  const handleLoginSuccess = (userData) => {
-    setIsAuthenticated(true);
-    setUser(userData.username);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('p8p_token');
-    localStorage.removeItem('p8p_user');
-    setIsAuthenticated(false);
-    setUser(null);
-  };
-
-  // 1. Agregar un nuevo nodo al lienzo
-  const handleAddNode = (nodeType) => {
-    const newNode = {
-      id: `node_${Date.now()}`,
-      type: 'customNode',
-      position: {
-        x: 250 + nodes.length * 30,
-        y: 150 + nodes.length * 30
-      },
-      data: {
-        label: nodeType.label,
-        type: nodeType.type,
-        isStart: nodeType.isStart,
-        parameters: nodeType.type === 'http_request'
-            ? { url: 'https://www.p8p.info/v1/api/1', method: 'GET' }
-            : nodeType.type === 'set_variable'
-                ? { variable_name: 'status', variable_value: 'active' }
-                : {}
-      },
-    };
-    setNodes((prev) => [...prev, newNode]);
-  };
-
-  // 2. Actualizar parámetros de un nodo desde el NodeInspector
-  const handleUpdateNode = (nodeId, newData) => {
-    setNodes((prevNodes) =>
-        prevNodes.map((node) => (node.id === nodeId ? { ...node, data: newData } : node))
-    );
-    setSelectedNode((prev) => (prev ? { ...prev, data: newData } : null));
-  };
-
-  // 3. Eliminar un nodo y sus conexiones
-  const handleDeleteNode = (nodeId) => {
-    setNodes((prev) => prev.filter((n) => n.id !== nodeId));
-    setEdges((prev) => prev.filter((e) => e.source !== nodeId && e.target !== nodeId));
+  // Reiniciar el lienzo para un Nuevo Workflow
+  const handleNewWorkflow = () => {
+    setNodes([]);
+    setEdges([]);
+    setWorkflowId(null);
+    setWorkflowName('Mi Nuevo Workflow P8P');
     setSelectedNode(null);
   };
 
-  // 4. Cargar un workflow guardado desde MariaDB
-  const handleLoadWorkflow = async (id) => {
-    try {
-      const response = await authenticatedFetch(`http://localhost:8000/get_workflows.php?id=${id}`);
-      const data = await response.json();
-
-      if (data.success && data.workflow) {
-        const { structure } = data.workflow;
-        setWorkflowId(data.workflow.id);
-        setNodes(structure.nodes || []);
-        setEdges(structure.edges || []);
-        setIsLoadModalOpen(false);
-      } else {
-        alert(`Error al obtener workflow: ${data.error || 'Respuesta inválida'}`);
-      }
-    } catch (err) {
-      alert(`Error de conexión al cargar el workflow: ${err.message}`);
-    }
+  // Copiar ID al portapapeles
+  const handleCopyId = () => {
+    if (!workflowId) return;
+    navigator.clipboard.writeText(workflowId);
+    setCopiedId(true);
+    setTimeout(() => setCopiedId(false), 2000);
   };
 
-  // 5. Ejecutar el Workflow en el motor PHP (api.php)
-  const handleTestWorkflow = async () => {
-    setIsRunning(true);
-    setExecutionResult(null);
-
-    const payload = {
-      nodes: nodes.map((n) => ({
-        id: n.id,
-        type: n.data.type,
-        data: {
-          is_start: n.data.isStart,
-          parameters: n.data.parameters || {}
-        }
-      })),
-      edges: edges.map((e) => ({
-        source: e.source,
-        target: e.target,
-        sourceHandle: e.sourceHandle,
-        targetHandle: e.targetHandle
-      }))
-    };
-
-    try {
-      const response = await authenticatedFetch('http://localhost:8000/api.php', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-
-      const data = await response.json();
-      setExecutionResult(data);
-    } catch (err) {
-      setExecutionResult({ error: 'Error al conectar con el backend PHP: ' + err.message });
-    } finally {
-      setIsRunning(false);
-    }
-  };
-
-  // 6. Guardar el Workflow en MariaDB (save_workflow.php)
+  // Guardar Workflow en MariaDB
   const handleSaveWorkflow = async () => {
-    setIsSaving(true);
-
-    const payload = {
-      id: workflowId,
-      name: 'Workflow Principal',
-      nodes: nodes,
-      edges: edges
-    };
-
     try {
-      const response = await authenticatedFetch('http://localhost:8000/save_workflow.php', {
+      const token = localStorage.getItem('p8p_token');
+      const res = await fetch('http://localhost:8000/save_workflow.php', {
         method: 'POST',
-        body: JSON.stringify(payload)
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          id: workflowId,
+          name: workflowName,
+          nodes,
+          edges
+        })
       });
 
-      const data = await response.json();
+      const data = await res.json();
       if (data.success) {
         setWorkflowId(data.workflow_id);
-        alert(`Workflow Guardado con Éxito. ID: ${data.workflow_id}`);
+        alert('Workflow guardado correctamente');
       } else {
-        alert(`Error al guardar: ${data.error}`);
+        alert('Error al guardar: ' + (data.error || 'Error desconocido'));
       }
     } catch (err) {
-      alert(`Error de conexión con la base de datos: ${err.message}`);
-    } finally {
-      setIsSaving(false);
+      alert('Error al conectar con el servidor');
     }
   };
 
-  // Extraer el tipo exacto del nodo seleccionado
-  const selectedNodeType = selectedNode?.data?.type || selectedNode?.type;
+  // Cargar Workflow
+  const handleLoadWorkflow = async (id) => {
+    try {
+      const token = localStorage.getItem('p8p_token');
+      const res = await fetch(`http://localhost:8000/get_workflows.php?id=${id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      });
 
-  // Encontrar el esquema que coincide con el tipo del nodo seleccionado
-  const selectedNodeSchema = nodeSchemas.find(
-      (schema) => schema.type === selectedNodeType
-  );
+      const data = await res.json();
+      if (data.success && data.workflow) {
+        setWorkflowId(data.workflow.id);
+        setWorkflowName(data.workflow.name);
+        setNodes(data.workflow.structure?.nodes || []);
+        setEdges(data.workflow.structure?.edges || []);
+        setIsLoadModalOpen(false);
+      }
+    } catch (err) {
+      console.error('Error al cargar workflow:', err);
+    }
+  };
 
-  // Si el usuario no está autenticado, solo renderiza la pantalla de bloqueo de login
-  if (!isAuthenticated) {
-    return (
-        <div className="w-screen h-screen bg-slate-950 flex items-center justify-center">
-          <LoginModal isOpen={true} onLoginSuccess={handleLoginSuccess} />
-        </div>
-    );
-  }
+  // Ejecutar Prueba de Workflow
+  const handleTestRun = async () => {
+    try {
+      const token = localStorage.getItem('p8p_token');
+      await fetch('http://localhost:8000/api.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ nodes, edges })
+      });
+
+      setIsLogsOpen(true);
+    } catch (err) {
+      alert('Error durante la ejecución del flujo');
+    }
+  };
 
   return (
-      <div className="flex flex-col h-screen w-screen bg-slate-900 text-slate-100 overflow-hidden">
-        {/* Top Navbar */}
-        <header className="h-14 border-b border-slate-800 bg-slate-950/80 backdrop-blur px-4 flex items-center justify-between z-10">
-          <div className="flex items-center gap-3">
-            <div className="bg-indigo-600 p-1.5 rounded-lg text-white font-bold tracking-wider text-sm flex items-center gap-1">
-              <Layers className="w-4 h-4" /> P8P
-            </div>
-            <span className="text-slate-500">/</span>
-            <span className="text-sm font-medium text-slate-300">Editor Visual</span>
-            {workflowId && (
-                <span className="text-[10px] font-mono bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-indigo-400">
-              ID: {workflowId.substring(0, 8)}...
-            </span>
-            )}
-          </div>
+      <div className="flex h-screen w-screen bg-slate-950 overflow-hidden font-sans relative">
 
-          <div className="flex items-center gap-2">
-            <button
-                onClick={() => setIsModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-medium transition"
-            >
-              <Plus className="w-3.5 h-3.5" /> Agregar Nodo
-            </button>
+        {/* Barra de Acciones Flotante en la esquina Superior Derecha */}
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-2 bg-slate-900/90 backdrop-blur-md border border-slate-800 p-2 rounded-2xl shadow-2xl">
 
-            <button
-                onClick={() => setIsLoadModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium transition border border-slate-700"
-            >
-              <FolderOpen className="w-3.5 h-3.5 text-indigo-400" /> Abrir
-            </button>
-
-            <button
-                onClick={handleSaveWorkflow}
-                disabled={isSaving || nodes.length === 0}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 rounded-lg text-xs font-medium transition border border-slate-700"
-            >
-              <Save className="w-3.5 h-3.5" /> {isSaving ? 'Guardando...' : 'Guardar'}
-            </button>
-
-            <button
-                onClick={() => setIsCredentialsOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium border border-slate-700 transition"
-            >
-              <Key className="w-3.5 h-3.5 text-indigo-400" /> Credenciales
-            </button>
-
-            <button
-                onClick={() => setIsLogsOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium border border-slate-700 transition"
-            >
-              <Activity className="w-3.5 h-3.5 text-indigo-400" /> Logs
-            </button>
-
-            <button
-                onClick={handleTestWorkflow}
-                disabled={isRunning || nodes.length === 0}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition shadow-lg shadow-emerald-900/20"
-            >
-              <Play className="w-3.5 h-3.5" /> {isRunning ? 'Ejecutando...' : 'Test Workflow'}
-            </button>
-
-            {/* Separador e información del usuario activo */}
-            <div className="h-5 w-[1px] bg-slate-800 mx-1"></div>
-
-            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-lg text-xs">
-              <User className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="text-slate-300 font-medium">{user}</span>
-            </div>
-
-            <button
-                onClick={handleLogout}
-                title="Cerrar Sesión"
-                className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-lg transition"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </header>
-
-        {/* Canvas Principal y Paneles */}
-        <main className="flex-1 relative flex overflow-hidden">
-          <div className="flex-1 relative">
-            <Canvas
-                nodes={nodes}
-                setNodes={setNodes}
-                edges={edges}
-                setEdges={setEdges}
-                onNodeSelect={setSelectedNode}
+          {/* Nombre del Workflow e Indicador de ID */}
+          <div className="flex flex-col gap-0.5">
+            <input
+                type="text"
+                value={workflowName}
+                onChange={(e) => setWorkflowName(e.target.value)}
+                placeholder="Nombre del Workflow..."
+                className="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 font-medium w-44"
             />
+
+            {/* Muestra del ID del Workflow */}
+            <div className="flex items-center justify-between bg-slate-950/80 border border-slate-800/80 px-2 py-0.5 rounded-lg text-[9px] text-slate-400 font-mono">
+                        <span className="truncate max-w-[120px]">
+                            {workflowId ? `ID: ${workflowId.substring(0, 10)}...` : 'ID: [Nuevo]'}
+                        </span>
+              {workflowId && (
+                  <button
+                      onClick={handleCopyId}
+                      className="text-indigo-400 hover:text-indigo-300 ml-1 transition"
+                      title="Copiar ID completo"
+                  >
+                    {copiedId ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5" />}
+                  </button>
+              )}
+            </div>
           </div>
 
-          {/* Modal de selección de nuevos nodos */}
-          <AddNodeModal
-              isOpen={isModalOpen}
-              onClose={() => setIsModalOpen(false)}
-              onAddNode={handleAddNode}
+          <div className="h-6 w-[1px] bg-slate-800 mx-0.5" />
+
+
+
+          {/* Botón Nuevo Workflow */}
+          <button
+              onClick={() => setIsNewModalOpen(true)}
+              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium px-3 py-1.5 rounded-xl transition"
+              title="Limpiar Lienzo"
+          >
+            <FilePlus className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Nuevo</span>
+          </button>
+
+          {/* Botón Abrir */}
+          <button
+              onClick={() => setIsLoadModalOpen(true)}
+              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium px-3 py-1.5 rounded-xl transition"
+          >
+            <FolderOpen className="w-3.5 h-3.5 text-sky-400" />
+            <span>Abrir</span>
+          </button>
+
+
+          {/* Botón Agregar Nodo */}
+          <button
+              onClick={() => setIsAddNodeOpen(true)}
+              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition shadow-md"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Agregar Nodo</span>
+          </button>
+
+          
+          {/* Botón Guardar */}
+          <button
+              onClick={handleSaveWorkflow}
+              className="flex items-center gap-1.5 bg-indigo-600/80 hover:bg-indigo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>Guardar</span>
+          </button>
+
+          {/* Botón Probar */}
+          <button
+              onClick={handleTestRun}
+              className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition"
+          >
+            <Play className="w-3.5 h-3.5 fill-current" />
+            <span>Probar</span>
+          </button>
+
+          <div className="h-6 w-[1px] bg-slate-800 mx-0.5" />
+
+          {/* Credenciales */}
+          <button
+              onClick={() => setIsCredentialsOpen(true)}
+              className="p-1.5 text-slate-400 hover:text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition"
+              title="Gestor de Credenciales"
+          >
+            <Key className="w-4 h-4 text-amber-400" />
+          </button>
+
+          {/* Logs */}
+          <button
+              onClick={() => setIsLogsOpen(true)}
+              className="p-1.5 text-slate-400 hover:text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition"
+              title="Logs de Ejecución"
+          >
+            <Activity className="w-4 h-4 text-purple-400" />
+          </button>
+        </div>
+
+        {/* Lienzo Principal de React Flow */}
+        <div className="flex-1 h-full">
+          <Canvas
+              nodes={nodes}
+              setNodes={setNodes}
+              edges={edges}
+              setEdges={setEdges}
+              onNodeSelect={(node) => setSelectedNode(node)}
           />
+        </div>
 
-          {/* Modal para cargar workflows guardados */}
-          <LoadWorkflowModal
-              isOpen={isLoadModalOpen}
-              onClose={() => setIsLoadModalOpen(false)}
-              onLoadWorkflow={handleLoadWorkflow}
-          />
+        {/* Panel del Inspector de Nodos */}
+        {selectedNode && (
+            <NodeInspector
+                selectedNode={selectedNode}
+                onClose={() => setSelectedNode(null)}
+                onUpdateNode={(id, newData) => {
+                  setNodes((nds) =>
+                      nds.map((node) => (node.id === id ? { ...node, data: newData } : node))
+                  );
+                }}
+                onDeleteNode={(id) => {
+                  setNodes((nds) => nds.filter((n) => n.id !== id));
+                  setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+                  setSelectedNode(null);
+                }}
+            />
+        )}
 
-          {/* Modal para gestión de credenciales encriptadas */}
-          <CredentialsModal
-              isOpen={isCredentialsOpen}
-              onClose={() => setIsCredentialsOpen(false)}
-          />
+        {/* Modales */}
+        <AddNodeModal
+            isOpen={isAddNodeOpen}
+            onClose={() => setIsAddNodeOpen(false)}
+            onAddNode={(nodeData) => {
+              const newNode = {
+                id: `node_${Date.now()}`,
+                type: 'customNode',
+                position: { x: 250, y: 150 },
+                data: {
+                  label: nodeData.label,
+                  type: nodeData.type,
+                  isStart: nodeData.isStart,
+                  parameters: {}
+                }
+              };
+              setNodes((nds) => [...nds, newNode]);
+            }}
+        />
 
-          {/* Modal para historial de ejecuciones y logs */}
-          <ExecutionLogsModal
-              isOpen={isLogsOpen}
-              onClose={() => setIsLogsOpen(false)}
-          />
+        <LoadWorkflowModal
+            isOpen={isLoadModalOpen}
+            onClose={() => setIsLoadModalOpen(false)}
+            onLoadWorkflow={handleLoadWorkflow}
+        />
 
-          {/* Inspector lateral para editar parámetros del nodo */}
-          {selectedNode && (
-              <NodeInspector
-                  selectedNode={selectedNode}
-                  nodeSchema={selectedNodeSchema}
-                  onClose={() => setSelectedNode(null)}
-                  onUpdateNode={handleUpdateNode}
-                  onDeleteNode={handleDeleteNode}
-              />
-          )}
+        <CredentialsModal
+            isOpen={isCredentialsOpen}
+            onClose={() => setIsCredentialsOpen(false)}
+        />
 
-          {/* Consola inferior con el JSON de respuesta de la API en PHP */}
-          {executionResult && (
-              <div className="absolute bottom-4 left-4 right-4 max-h-48 bg-slate-950/90 border border-slate-700 rounded-xl p-3 font-mono text-xs overflow-auto z-30 shadow-2xl">
-                <div className="flex justify-between items-center mb-2 border-b border-slate-800 pb-1 text-slate-400">
-                  <span>Resultado de Ejecución (Backend PHP)</span>
-                  <button onClick={() => setExecutionResult(null)} className="hover:text-white">✕</button>
-                </div>
-                <pre className="text-emerald-400">{JSON.stringify(executionResult, null, 2)}</pre>
-              </div>
-          )}
-        </main>
+        <ExecutionLogsModal
+            isOpen={isLogsOpen}
+            onClose={() => setIsLogsOpen(false)}
+        />
+
+        <NewWorkflowModal
+            isOpen={isNewModalOpen}
+            onClose={() => setIsNewModalOpen(false)}
+            onConfirm={handleNewWorkflow}
+        />
       </div>
   );
 }
