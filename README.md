@@ -4,6 +4,22 @@
 
 ---
 
+## 🖼️ See p8p in action
+
+### Visual workflow editor
+
+Connect chat triggers, AI agents, conditions, and integrations on a single canvas. Build workflows with Telegram, Slack, MySQL, WordPress, and HTTP requests using configurable nodes.
+
+![p8p visual workflow editor with an AI agent connected to chat, messaging, database, and WordPress nodes](docs/images/workflow-editor.png)
+
+### Guided installation
+
+The web installer checks your PHP environment and required extensions before you continue to configuration.
+
+![p8p web installer checking PHP, PDO MySQL, cURL, OpenSSL, and server write permissions](docs/images/installer.png)
+
+---
+
 ## ✨ Features
 
 - 🎨 **Modern Visual Node Canvas:** Fluid drag-and-drop interface powered by React Flow with custom node modals, side panels, and clean connection edges.
