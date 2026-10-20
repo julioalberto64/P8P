@@ -12,12 +12,35 @@ class GeminiChatModelNode implements NodeInterface
         return [
             'type' => 'gemini_model',
             'name' => 'Google Gemini Chat Model',
+            'category' => 'Premium',
+            'description' => 'Modelo de lenguaje multimodal de Google Gemini con autenticación por credencial o API Key directa.',
             'icon' => 'Sparkles',
-            'description' => 'Modelo de chat LLM de Google Gemini',
+            'is_start' => false,
+            'help_text' => 'Selecciona una credencial encriptada de Gemini o proporciona una API Key manualmente. Si se seleccionan ambas, la credencial tendrá prioridad.',
             'parameters' => [
-                'credential_id' => ['type' => 'string', 'required' => false],
-                'model' => ['type' => 'string', 'default' => 'gemini-3.8-flash'],
-                'temperature' => ['type' => 'float', 'default' => 0.7]
+                'credential_id' => [
+                    'type' => 'credential',
+                    'required' => false,
+                    'label' => 'Credencial de Gemini'
+                ],
+                'model' => [
+                    'type' => 'select',
+                    'required' => true,
+                    'label' => 'Modelo',
+                    'default' => 'gemini-3.8-flash',
+                    'options' => [
+                        ['value' => 'gemini-3.8-flash', 'label' => 'Gemini 3.8 Flash (Rápido / Recomendado)'],
+                        ['value' => 'gemini-1.5-pro', 'label' => 'Gemini 1.5 Pro (Complejo / Razonamiento)'],
+                        ['value' => 'gemini-1.5-flash', 'label' => 'Gemini 1.5 Flash (Balanceado)']
+                    ]
+                ],
+                'temperature' => [
+                    'type' => 'number',
+                    'required' => false,
+                    'label' => 'Temperatura (0.0 a 1.0)',
+                    'default' => 0.7,
+                    'placeholder' => '0.7'
+                ]
             ]
         ];
     }

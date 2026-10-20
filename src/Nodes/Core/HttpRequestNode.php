@@ -13,11 +13,42 @@ class HttpRequestNode implements NodeInterface
         return [
             'type' => 'http_request',
             'name' => 'HTTP Request',
+            'category' => 'Core',
+            'description' => 'Realiza peticiones HTTP (GET, POST, PUT, DELETE) a servicios externos.',
+            'icon' => 'Globe',
+            'is_start' => false,
+            'help_text' => 'Permite conectar tu flujo con APIs web. Puedes usar sintaxis {{variable}} en la URL, Headers o Body para enviar datos dinámicos.',
             'parameters' => [
-                'url' => ['type' => 'string', 'required' => true],
-                'method' => ['type' => 'string', 'default' => 'GET'],
-                'headers' => ['type' => 'string', 'default' => ''],
-                'body' => ['type' => 'string', 'default' => '']
+                'url' => [
+                    'type' => 'string',
+                    'required' => true,
+                    'label' => 'URL de Destino',
+                    'placeholder' => 'https://api.ejemplo.com/v1/data'
+                ],
+                'method' => [
+                    'type' => 'select',
+                    'required' => true,
+                    'label' => 'Método HTTP',
+                    'default' => 'GET',
+                    'options' => [
+                        ['value' => 'GET', 'label' => 'GET'],
+                        ['value' => 'POST', 'label' => 'POST'],
+                        ['value' => 'PUT', 'label' => 'PUT'],
+                        ['value' => 'DELETE', 'label' => 'DELETE']
+                    ]
+                ],
+                'headers' => [
+                    'type' => 'textarea',
+                    'required' => false,
+                    'label' => 'Encabezados (JSON)',
+                    'placeholder' => "{\n  \"Content-Type\": \"application/json\"\n}"
+                ],
+                'body' => [
+                    'type' => 'textarea',
+                    'required' => false,
+                    'label' => 'Cuerpo de la Petición (Body)',
+                    'placeholder' => "{\n  \"key\": \"{{value}}\"\n}"
+                ]
             ]
         ];
     }

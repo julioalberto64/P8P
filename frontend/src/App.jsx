@@ -54,7 +54,7 @@ export default function App() {
         type: nodeType.type,
         isStart: nodeType.isStart,
         parameters: nodeType.type === 'http_request'
-            ? { url: 'https://jsonplaceholder.typicode.com/todos/1', method: 'GET' }
+            ? { url: 'https://www.p8p.info/v1/api/1', method: 'GET' }
             : nodeType.type === 'set_variable'
                 ? { variable_name: 'status', variable_value: 'active' }
                 : {}

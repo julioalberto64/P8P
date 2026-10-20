@@ -1,8 +1,8 @@
 <?php
 
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Headers: Content-Type");
 header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type");
 header("Content-Type: application/json");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -11,51 +11,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use P8P\Core\QueueManager;
-
-// Si la consulta es un GET ?job_id=xxx, retornamos el estado actual de la ejecución
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && !empty($_GET['job_id'])) {
-    try {
-        $queue = new QueueManager();
-        $job = $queue->getJobStatus($_GET['job_id']);
-
-        if (!$job) {
-            http_response_code(404);
-            echo json_encode(['error' => 'Trabajo no encontrado']);
-            exit;
-        }
-
-        echo json_encode(['success' => true, 'job' => $job]);
-        exit;
-    } catch (\Throwable $e) {
-        http_response_code(500);
-        echo json_encode(['error' => $e->getMessage()]);
-        exit;
-    }
-}
-
-// Para POST, encolamos el trabajo
-$input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-$workflowId = $input['workflow_id'] ?? $_GET['id'] ?? 'adhoc_workflow';
-
-if (empty($input['nodes']) && empty($input['workflow_id'])) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Se requieren nodos o un workflow_id para encolar']);
-    exit;
-}
+use P8P\Core\Database;
 
 try {
-    $queue = new QueueManager();
-    $jobId = $queue->enqueue($workflowId, $input);
+    $rawInput = file_get_contents('php://input');
+    $data = json_decode($rawInput, true) ?? $_POST;
 
-    http_response_code(202); // 202 Accepted
+    $workflowId  = $data['workflow_id'] ?? null;
+    $sessionId   = $data['session_id'] ?? 'guest_' . time();
+    $userMessage = $data['message'] ?? $data['user_message'] ?? '';
+
+    if (empty($workflowId)) {
+        echo json_encode(['success' => false, 'error' => 'workflow_id es requerido']);
+        exit;
+    }
+
+    $config = require __DIR__ . '/../config/database.php';
+    $db = Database::getConnection($config);
+
+    // Guardar el mensaje entrante en la cola de trabajos (queue_jobs)
+    $jobId = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+        mt_rand(0, 0x0fff) | 0x4000, mt_rand(0, 0x3fff) | 0x8000,
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+    );
+
+    $payload = json_encode([
+        'session_id' => $sessionId,
+        'user_message' => $userMessage,
+        'received_at' => date('Y-m-d H:i:s')
+    ]);
+
+    $stmt = $db->prepare("
+        INSERT INTO queue_jobs (id, workflow_id, payload, status, created_at) 
+        VALUES (:id, :workflow_id, :payload, 'pending', NOW())
+    ");
+
+    $stmt->execute([
+        ':id' => $jobId,
+        ':workflow_id' => $workflowId,
+        ':payload' => $payload
+    ]);
+
     echo json_encode([
         'success' => true,
-        'message' => 'Ejecución encolada correctamente en segundo plano',
         'job_id' => $jobId,
-        'status_url' => "http://{$_SERVER['HTTP_HOST']}/async_run.php?job_id={$jobId}"
+        'message' => 'Mensaje recibido correctamente en el motor P8P'
     ]);
 } catch (\Throwable $e) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Error al encolar trabajo: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }

@@ -11,10 +11,25 @@ class ChatTriggerNode implements NodeInterface
         return [
             'type' => 'chat_trigger',
             'name' => 'Chat Trigger',
-            'icon' => 'MessageSquare', 'description' => 'Detonador de chat flotante JS',
+            'category' => 'Core',
+            'description' => 'Disparador de entrada para conversaciones mediante el Widget JS flotante (p8p-chat.js).',
+            'icon' => 'MessageSquare',
+            'is_start' => true,
+            'help_text' => 'Punto de inicio para flujos conversacionales. Captura el mensaje entrante del usuario ({{user_message}}) y el ID de sesión ({{session_id}}) desde el widget web.',
             'parameters' => [
-                'session_id' => ['type' => 'string', 'default' => 'default_session'],
-                'user_message' => ['type' => 'string', 'default' => '']
+                'session_id' => [
+                    'type' => 'string',
+                    'required' => false,
+                    'label' => 'ID de Sesión por Defecto',
+                    'default' => 'default_session',
+                    'placeholder' => 'ej. session_12345'
+                ],
+                'user_message' => [
+                    'type' => 'string',
+                    'required' => false,
+                    'label' => 'Mensaje Simulado (Testing)',
+                    'placeholder' => 'Escribe un mensaje de prueba...'
+                ]
             ]
         ];
     }

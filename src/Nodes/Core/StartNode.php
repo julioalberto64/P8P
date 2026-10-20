@@ -11,10 +11,19 @@ class StartNode implements NodeInterface
         return [
             'type' => 'start',
             'name' => 'Start Trigger',
-            'icon' => 'Play', 'description' => 'Disparador inicial de ejecución',
-            'icon' => 'play',
-            'description' => 'Punto de entrada inicial para la ejecución del flujo',
-            'parameters' => []
+            'category' => 'Core',
+            'description' => 'Punto de entrada manual o por defecto para iniciar la ejecución del flujo.',
+            'icon' => 'Play',
+            'is_start' => true,
+            'help_text' => 'Este nodo marca el comienzo de tu flujo de trabajo. No requiere parámetros obligatorios, pero puedes inicializar un Payload manual para pruebas localmente.',
+            'parameters' => [
+                'test_payload' => [
+                    'type' => 'textarea',
+                    'required' => false,
+                    'label' => 'Payload Inicial de Prueba (JSON)',
+                    'placeholder' => "{\n  \"env\": \"test\",\n  \"user\": \"admin\"\n}"
+                ]
+            ]
         ];
     }
 

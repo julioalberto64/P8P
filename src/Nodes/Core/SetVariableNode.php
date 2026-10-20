@@ -11,10 +11,24 @@ class SetVariableNode implements NodeInterface
         return [
             'type' => 'set_variable',
             'name' => 'Set Variable',
-            'icon' => 'Sliders', 'description' => 'Asigna o transforma variables dentro del contexto del flujo',
+            'category' => 'Core',
+            'description' => 'Declara o transforma variables globales dentro de la ejecución del flujo.',
+            'icon' => 'Sliders',
+            'is_start' => false,
+            'help_text' => 'Asigna un nombre de variable y su valor. Esta variable estará disponible en los nodos subsecuentes con la sintaxis {{nombre_variable}}.',
             'parameters' => [
-                'variable_name' => ['type' => 'string', 'required' => true],
-                'variable_value' => ['type' => 'string', 'required' => true]
+                'variable_name' => [
+                    'type' => 'string',
+                    'required' => true,
+                    'label' => 'Nombre de la Variable',
+                    'placeholder' => 'ej. chat_id o mi_token'
+                ],
+                'variable_value' => [
+                    'type' => 'string',
+                    'required' => true,
+                    'label' => 'Valor',
+                    'placeholder' => 'ej. 123456 o Hola Mundo'
+                ]
             ]
         ];
     }

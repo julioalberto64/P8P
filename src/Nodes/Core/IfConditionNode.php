@@ -11,11 +11,37 @@ class IfConditionNode implements NodeInterface
         return [
             'type' => 'if_condition',
             'name' => 'If Condition',
-            'icon' => 'GitFork', 'description' => 'Bifurcación lógica condicional',
+            'category' => 'Core',
+            'description' => 'Bifurcación lógica condicional para controlar el flujo de ejecución.',
+            'icon' => 'GitFork',
+            'is_start' => false,
+            'help_text' => 'Compara dos valores usando el operador seleccionado. Puedes evaluar variables dinámicas (ej. {{status}} o {{response_code}}).',
             'parameters' => [
-                'value_1' => ['type' => 'string', 'default' => ''],
-                'operator' => ['type' => 'string', 'default' => 'equals'], // equals, not_equals, contains, not_contains, is_empty, is_not_empty
-                'value_2' => ['type' => 'string', 'default' => '']
+                'value_1' => [
+                    'type' => 'string',
+                    'required' => true,
+                    'label' => 'Valor 1',
+                    'placeholder' => 'ej. {{status}}'
+                ],
+                'operator' => [
+                    'type' => 'select',
+                    'required' => true,
+                    'label' => 'Operador de Comparación',
+                    'default' => 'equals',
+                    'options' => [
+                        ['value' => 'equals', 'label' => 'Es igual a (==)'],
+                        ['value' => 'not_equals', 'label' => 'No es igual a (!=)'],
+                        ['value' => 'contains', 'label' => 'Contiene'],
+                        ['value' => 'greater_than', 'label' => 'Mayor que (>)'],
+                        ['value' => 'less_than', 'label' => 'Menor que (<)']
+                    ]
+                ],
+                'value_2' => [
+                    'type' => 'string',
+                    'required' => true,
+                    'label' => 'Valor 2',
+                    'placeholder' => 'ej. active o 200'
+                ]
             ]
         ];
     }

@@ -15,9 +15,26 @@ class AiAgentNode implements NodeInterface
         return [
             'type' => 'ai_agent',
             'name' => 'AI Agent',
-            'icon' => 'Bot', 'description' => 'Agente autónomo con bucle ReAct',
+            'category' => 'Core',
+            'description' => 'Agente autónomo con capacidad de razonamiento ReAct y ejecución de herramientas.',
+            'icon' => 'Bot',
+            'is_start' => false,
+            'help_text' => 'Define las instrucciones base del modelo en el Prompt del Sistema. Puedes pasar datos de contexto o entradas del usuario dinámicamente usando {{user_message}} o {{variable}}.',
             'parameters' => [
-                'system_prompt' => ['type' => 'string', 'default' => 'Eres un asistente útil y preciso.']
+                'system_prompt' => [
+                    'type' => 'textarea',
+                    'required' => true,
+                    'label' => 'Prompt del Sistema (System Prompt)',
+                    'default' => 'Eres un asistente útil y preciso.',
+                    'placeholder' => 'Ej. Eres un asistente virtual experto en ventas. Responde siempre en español y de forma concisa.'
+                ],
+                'temperature' => [
+                    'type' => 'number',
+                    'required' => false,
+                    'label' => 'Creatividad / Temperatura (0.0 a 1.0)',
+                    'default' => 0.7,
+                    'placeholder' => '0.7'
+                ]
             ]
         ];
     }
