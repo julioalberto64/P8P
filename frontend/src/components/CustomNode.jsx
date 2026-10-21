@@ -1,4 +1,3 @@
-import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Globe, Play, Settings, Bot, Cpu, Database, Wrench, Sparkles, GitFork, MessageSquare } from 'lucide-react';
 const icons = {
@@ -18,6 +17,7 @@ export default function CustomNode({ data, selected }) {
     const IconComponent = icons[data.type] || icons.default;
     const isAgent = data.type === 'ai_agent';
     const isIfCondition = data.type === 'if_condition';
+    const isLoop = data.type === 'loop';
 
     const isModelNode = data.type === 'ollama_model' || data.type === 'gemini_model';
     const isMemoryNode = data.type === 'simple_memory';
@@ -57,7 +57,7 @@ export default function CustomNode({ data, selected }) {
             </div>
 
             {/* Salida Estándar a la Derecha */}
-            {!isModelNode && !isMemoryNode && !isIfCondition && (
+            {!isModelNode && !isMemoryNode && !isIfCondition && !isLoop && (
                 <Handle
                     type="source"
                     position={isToolNode ? Position.Top : Position.Right}
@@ -88,6 +88,21 @@ export default function CustomNode({ data, selected }) {
                             style={{ top: '88%' }}
                             className="!w-2.5 !h-2.5 !bg-rose-400 !border-2 !border-slate-800"
                         />
+                    </div>
+                </div>
+            )}
+
+            {isLoop && (
+                <div className="flex flex-col gap-2 mt-3 pt-2 border-t border-slate-700/60 text-[10px] font-mono">
+                    <div className="flex items-center justify-end text-amber-400 font-bold relative">
+                        <span>Cuerpo</span>
+                        <Handle type="source" position={Position.Right} id="body"
+                            className="!w-2.5 !h-2.5 !bg-amber-400 !border-2 !border-slate-800" />
+                    </div>
+                    <div className="flex items-center justify-end text-emerald-400 font-bold relative">
+                        <span>Finalizado</span>
+                        <Handle type="source" position={Position.Right} id="done"
+                            className="!w-2.5 !h-2.5 !bg-emerald-400 !border-2 !border-slate-800" />
                     </div>
                 </div>
             )}
