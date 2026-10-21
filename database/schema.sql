@@ -23,12 +23,15 @@ CREATE TABLE IF NOT EXISTS queue_jobs (
     payload LONGTEXT NOT NULL,
     status ENUM('pending', 'processing', 'completed', 'failed') NOT NULL DEFAULT 'pending',
     attempts INT NOT NULL DEFAULT 0,
+    available_at DATETIME NULL,
+    claim_token VARCHAR(64) NULL,
     error_message TEXT NULL,
     result LONGTEXT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    KEY idx_status (status)
+    KEY idx_status (status),
+    KEY idx_queue_available (status, available_at, created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabla para almacenar credenciales encriptadas (API Keys, OAuth Tokens, Basic Auth)

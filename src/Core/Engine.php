@@ -2,103 +2,185 @@
 
 namespace P8P\Core;
 
+use InvalidArgumentException;
 use P8P\Interfaces\NodeInterface;
 use P8P\Nodes\Core\LoopNode;
-use InvalidArgumentException;
+use P8P\Nodes\Core\DelayNode;
+use P8P\Nodes\Core\MergeNode;
+use P8P\Nodes\Core\SetVariableNode;
+use P8P\Nodes\Core\SwitchNode;
 use RuntimeException;
 
 class Engine
 {
     private array $registeredNodes = [];
+    private \Closure $clock;
 
-    /**
-     * Registra un nodo en el motor
-     */
-    public function registerNode(NodeInterface $node): void
+    public function __construct(?callable $clock = null)
     {
-        $schema = $node->getSchema();
-        $this->registeredNodes[$schema['type']] = $node;
+        $this->clock = $clock === null ? static fn (): int => time() : \Closure::fromCallable($clock);
     }
 
-    /**
-     * Ejecuta la secuencia del grafo resolviendo el flujo principal y los sub-puertos (model, memory, tools)
-     */
+    public function registerNode(NodeInterface $node): void
+    {
+        $this->registeredNodes[$node->getSchema()['type']] = $node;
+    }
+
     public function executeWorkflow(array $workflowData, array $initialContext = []): array
+    {
+        return $this->run($workflowData, $initialContext);
+    }
+
+    /** Solo invocar con un checkpoint cargado del almacenamiento de cola de confianza. */
+    public function resumeWorkflow(array $workflowData, array $checkpoint): array
+    {
+        if (($checkpoint['version'] ?? null) !== 1
+            || ($checkpoint['workflow_hash'] ?? '') !== $this->workflowHash($workflowData)
+            || !isset($checkpoint['frames'], $checkpoint['executions'], $checkpoint['resume_at'])) {
+            throw new InvalidArgumentException('Checkpoint de ejecución inválido o workflow modificado.');
+        }
+        return $this->run($workflowData, [], $checkpoint);
+    }
+
+    private function workflowHash(array $workflow): string
+    {
+        return hash('sha256', json_encode($workflow, JSON_THROW_ON_ERROR));
+    }
+
+    private function run(array $workflowData, array $initialContext, array $checkpoint = []): array
     {
         $nodes = $workflowData['nodes'] ?? [];
         $edges = $workflowData['edges'] ?? [];
-
-        if (empty($nodes)) {
-            throw new InvalidArgumentException("El workflow no contiene nodos para ejecutar.");
+        if ($nodes === []) {
+            throw new InvalidArgumentException('El workflow no contiene nodos para ejecutar.');
         }
-
-        // Separar las conexiones principales de la secuencia de las sub-conexiones de soporte
-        $adjacencyList = [];
-        $subConnections = [];
-
-        foreach ($edges as $edge) {
-            $source = $edge['source'];
-            $target = $edge['target'];
-            $targetHandle = $edge['targetHandle'] ?? 'main_input';
-
-            if ($targetHandle !== 'main_input' && !empty($targetHandle)) {
-                $subConnections[$target][$targetHandle][] = $source;
-            } else {
-                // Guardar la información completa del enlace para poder evaluar sourceHandle
-                $adjacencyList[$source][] = $edge;
-            }
-        }
-
-        $startNode = $this->findStartNode($nodes);
-        if (!$startNode) {
-            throw new RuntimeException("No se encontró un nodo de inicio en el workflow.");
-        }
-
         $nodesById = array_column($nodes, null, 'id');
         if (count($nodesById) !== count($nodes)) {
             throw new InvalidArgumentException('Los IDs de nodos deben ser únicos.');
         }
-        $hasLoop = count(array_filter($nodes, fn ($node) => ($node['type'] ?? '') === 'loop')) > 0;
-        if ($hasLoop) {
-            $this->validateLoopGraph($nodesById, $edges, $adjacencyList);
+        $adjacencyList = [];
+        $incoming = [];
+        $subConnections = [];
+        foreach ($edges as $edge) {
+            if (!isset($nodesById[$edge['source'] ?? ''], $nodesById[$edge['target'] ?? ''])) {
+                throw new InvalidArgumentException('Una conexión referencia un nodo inexistente.');
+            }
+            $targetHandle = $edge['targetHandle'] ?? 'main_input';
+            if ($targetHandle !== 'main_input' && !empty($targetHandle)) {
+                foreach ([$edge['source'], $edge['target']] as $id) {
+                    if (in_array($nodesById[$id]['type'], ['loop', 'split_in_batches', 'merge', 'switch', 'delay', 'stop_and_error', 'set_variable', 'code'], true)) {
+                        throw new InvalidArgumentException('Los nodos de control no admiten conexiones por subpuertos.');
+                    }
+                }
+                $subConnections[$edge['target']][$targetHandle][] = $edge['source'];
+            } else {
+                if (($nodesById[$edge['source']]['type'] ?? '') === 'switch'
+                    && preg_match('/^(?:case_[1-8]|default)$/D', $edge['sourceHandle'] ?? '') !== 1) {
+                    throw new InvalidArgumentException('Switch: utiliza case_1 a case_8 o default.');
+                }
+                $adjacencyList[$edge['source']][] = $edge;
+                $incoming[$edge['target']][] = $edge;
+            }
         }
-
-        $executionHistory = [];
-        $context = $initialContext;
-        $executions = 0;
+        // También valida DAGs sin Loop para que Merge no espere ciclos indefinidamente.
+        $this->validateLoopGraph($nodesById, $edges, $adjacencyList);
+        $frames = isset($checkpoint['frames']) ? CheckpointCodec::decode($checkpoint['frames']) : [];
+        $executions = $checkpoint['executions'] ?? 0;
+        $resumeAt = $checkpoint['resume_at'] ?? 0;
         $tick = function () use (&$executions): void {
             if (++$executions > 10000) {
                 throw new RuntimeException('Se alcanzó el límite global de 10000 ejecuciones de nodos.');
             }
         };
-
-        // Cada bloque tiene su propio conjunto visited, contexto e historial.
-        $runBlock = function (array $queue, array &$blockContext, array &$history, array $loopPath = []) use (
-            &$runBlock, $nodesById, $adjacencyList, $subConnections, $tick
-        ): void {
-            $visited = [];
-            while ($queue !== []) {
-                $currentNodeId = array_shift($queue);
-                if (isset($visited[$currentNodeId])) {
+        $isBlock = static fn (string $type): bool => in_array($type, ['loop', 'split_in_batches'], true);
+        // Un frame excluye cuerpos anidados: sus nodos se ejecutan en frames hijos.
+        $scope = function (array $roots) use ($nodesById, $adjacencyList, $isBlock): array {
+            $found = [];
+            while ($roots !== []) {
+                $id = array_shift($roots);
+                if (isset($found[$id])) {
                     continue;
                 }
-                $visited[$currentNodeId] = true;
-                $nodeData = $nodesById[$currentNodeId] ?? null;
-                if (!$nodeData) {
+                $found[$id] = true;
+                foreach ($adjacencyList[$id] ?? [] as $edge) {
+                    if (!$isBlock($nodesById[$id]['type']) || ($edge['sourceHandle'] ?? '') === 'done') {
+                        $roots[] = $edge['target'];
+                    }
+                }
+            }
+            return $found;
+        };
+        $runBlock = function (array $roots, array $context, array &$history, array $path = []) use (
+            &$runBlock, &$frames, $scope, $incoming, $adjacencyList, $nodesById, $subConnections, $tick
+        ): array {
+            $key = json_encode($path, JSON_THROW_ON_ERROR);
+            if (!isset($frames[$key])) {
+                $frames[$key] = ['scope' => $scope($roots), 'roots' => array_fill_keys($roots, true),
+                    'states' => [], 'started' => [], 'context' => $context, 'history' => [], 'outputs' => []];
+            }
+            $frame = &$frames[$key];
+            $history = $frame['history'];
+            while (count($frame['states']) < count($frame['scope'])) {
+                $currentNodeId = null;
+                // Barrera: todos los predecesores del frame deben estar resueltos, activos o descartados.
+                foreach ($frame['scope'] as $id => $_) {
+                    if (isset($frame['states'][$id])) {
+                        continue;
+                    }
+                    $ready = true;
+                    foreach ($incoming[$id] ?? [] as $edge) {
+                        if (isset($frame['scope'][$edge['source']]) && !isset($frame['states'][$edge['source']])) {
+                            $ready = false;
+                            break;
+                        }
+                    }
+                    if ($ready) {
+                        $currentNodeId = $id;
+                        break;
+                    }
+                }
+                if ($currentNodeId === null) {
+                    throw new RuntimeException('El bloque no puede continuar: dependencias sin resolver.');
+                }
+                $active = isset($frame['roots'][$currentNodeId]);
+                $mergeInputs = [];
+                $mergeSkipped = [];
+                foreach ($incoming[$currentNodeId] ?? [] as $edge) {
+                    $sourceId = $edge['source'];
+                    if (!isset($frame['scope'][$sourceId])) {
+                        continue;
+                    }
+                    $sourceOutput = $frame['outputs'][$sourceId] ?? [];
+                    $selected = ($frame['states'][$sourceId] ?? '') === 'success'
+                        && (!isset($sourceOutput['branch']) || $sourceOutput['branch'] === ($edge['sourceHandle'] ?? 'main_output'));
+                    if ($selected) {
+                        $active = true;
+                        $mergeInputs[$sourceId] = $sourceOutput;
+                    } else {
+                        $mergeSkipped[] = $sourceId;
+                    }
+                }
+                if (!$active) {
+                    $frame['states'][$currentNodeId] = 'skipped';
                     continue;
                 }
-                $nodeType = $nodeData['type'] ?? '';
+                $nodeData = $nodesById[$currentNodeId];
+                $nodeType = $nodeData['type'];
                 $startTime = microtime(true);
-                $entry = ['node_id' => $currentNodeId, 'type' => $nodeType, 'loop_path' => $loopPath];
+                $entry = ['node_id' => $currentNodeId, 'type' => $nodeType, 'loop_path' => $path];
+                $suspendAfter = null;
                 try {
-                    $tick();
-                    if (!isset($this->registeredNodes[$nodeType])) {
+                    if (!isset($frame['started'][$currentNodeId])) {
+                        $tick();
+                        $frame['started'][$currentNodeId] = true;
+                    }
+                    $nodeInstance = $this->registeredNodes[$nodeType] ?? null;
+                    if ($nodeInstance === null) {
                         throw new RuntimeException("El tipo de nodo '{$nodeType}' no está registrado en el motor.");
                     }
-                    $nodeInstance = $this->registeredNodes[$nodeType];
-                    $rawParameters = $nodeData['data']['parameters'] ?? [];
+                    $raw = $nodeData['data']['parameters'] ?? [];
                     if ($nodeInstance instanceof LoopNode) {
-                        if (count($loopPath) >= 16) {
+                        if (count($path) >= 16) {
                             throw new RuntimeException('Loop: se alcanzó la profundidad máxima de 16 niveles.');
                         }
                         $bodyIds = [];
@@ -107,111 +189,152 @@ class Engine
                                 $bodyIds[] = $edge['target'];
                             }
                         }
-                        $loopContext = $blockContext;
+                        $loopContext = $frame['context'];
                         $pending = $bodyIds;
                         $bodyNodes = [];
                         while ($pending !== []) {
-                            $bodyId = array_pop($pending);
-                            if (isset($bodyNodes[$bodyId])) {
+                            $id = array_pop($pending);
+                            if (isset($bodyNodes[$id])) {
                                 continue;
                             }
-                            $bodyNodes[$bodyId] = true;
-                            unset($loopContext[$bodyId]);
-                            foreach ($adjacencyList[$bodyId] ?? [] as $edge) {
+                            $bodyNodes[$id] = true;
+                            unset($loopContext[$id]);
+                            foreach ($adjacencyList[$id] ?? [] as $edge) {
                                 $pending[] = $edge['target'];
                             }
                         }
-                        // No interpolar aquí: Loop debe reevaluar las condiciones originales.
                         $entry['iterations'] = [];
-                        $output = $nodeInstance->execute($rawParameters, $loopContext,
+                        $output = $nodeInstance->execute($raw, $loopContext,
                             function (array $iterationContext, array $state) use (
-                                &$runBlock, &$entry, $bodyIds, $currentNodeId, $loopPath
+                                &$runBlock, &$entry, $bodyIds, $currentNodeId, $path
                             ): array {
                                 $iterationHistory = [];
-                                $path = [...$loopPath, ['node_id' => $currentNodeId, 'iteration' => $state['iteration']]];
+                                $iterationPath = [...$path, ['node_id' => $currentNodeId, 'iteration' => $state['iteration']]];
                                 try {
-                                    $runBlock($bodyIds, $iterationContext, $iterationHistory, $path);
+                                    return $runBlock($bodyIds, $iterationContext, $iterationHistory, $iterationPath);
                                 } finally {
                                     $entry['iterations'][] = ['index' => $state['index'], 'iteration' => $state['iteration'],
                                         'history' => $iterationHistory];
                                 }
-                                // Exportar solo resultados producidos por este bloque, no el contexto exterior.
-                                $outputs = [];
-                                foreach ($iterationHistory as $id => $record) {
-                                    if ($record['status'] === 'success') {
-                                        $outputs[$id] = $record['output'];
-                                    }
-                                }
-                                return $outputs;
                             }, $currentNodeId);
                     } else {
-                        $evaluatedParameters = ExpressionEvaluator::evaluate($rawParameters, $blockContext);
-                        $subNodeOutputs = [];
+                        // Código y casos JSON nunca se interpolan como código fuente o texto JSON completo.
+                        $parameters = $nodeInstance instanceof SwitchNode || $nodeType === 'code'
+                            ? $raw : ExpressionEvaluator::evaluate($raw, $frame['context']);
+                        unset($parameters['_merge_inputs'], $parameters['_merge_skipped']);
+                        if ($nodeInstance instanceof MergeNode) {
+                            $parameters['_merge_inputs'] = $mergeInputs;
+                            $parameters['_merge_skipped'] = array_values(array_diff(array_unique($mergeSkipped), array_keys($mergeInputs)));
+                        }
+                        $subOutputs = [];
                         foreach ($subConnections[$currentNodeId] ?? [] as $handle => $sourceIds) {
                             foreach ($sourceIds as $sourceId) {
-                                $sourceType = $nodesById[$sourceId]['type'] ?? '';
-                                if (!isset($this->registeredNodes[$sourceType])) {
-                                    throw new RuntimeException("Subnodo no registrado: {$sourceId}.");
+                                $entry['active_subnode'] = $sourceId;
+                                $sourceType = $nodesById[$sourceId]['type'];
+                                $instance = $this->registeredNodes[$sourceType] ?? null;
+                                if ($instance === null) {
+                                    // Compatibilidad con workflows guardados con puertos opcionales sin implementación.
+                                    // El nodo principal sigue validando sus dependencias obligatorias (p. ej. model).
+                                    $entry['skipped_subnodes'][] = ['node_id' => $sourceId, 'type' => $sourceType,
+                                        'handle' => $handle, 'reason' => 'unregistered'];
+                                    unset($entry['active_subnode']);
+                                    continue;
                                 }
                                 $tick();
-                                $entry['active_subnode'] = $sourceId;
-                                $sourceInstance = $this->registeredNodes[$sourceType];
-                                $sourceParams = ExpressionEvaluator::evaluate(
-                                    $nodesById[$sourceId]['data']['parameters'] ?? [], $blockContext
-                                );
-                                $subOutput = $sourceInstance->execute($sourceParams, $blockContext);
-                                if ($loopPath !== [] && ($subOutput['success'] ?? null) === false) {
+                                $subParams = ExpressionEvaluator::evaluate($nodesById[$sourceId]['data']['parameters'] ?? [], $frame['context']);
+                                $subOutput = $instance->execute($subParams, $frame['context']);
+                                if ($path !== [] && ($subOutput['success'] ?? null) === false) {
                                     throw new RuntimeException("El subnodo {$sourceId} devolvió success=false.");
                                 }
-                                $subNodeOutputs[$handle][] = $subOutput;
+                                $subOutputs[$handle][] = $subOutput;
                                 unset($entry['active_subnode']);
                             }
                         }
-                        $evaluatedParameters['_sub_connections'] = $subNodeOutputs;
-                        $entry['evaluated_parameters'] = $evaluatedParameters;
-                        $output = $nodeInstance->execute($evaluatedParameters, $blockContext);
+                        $parameters['_sub_connections'] = $subOutputs;
+                        if ($nodeType !== 'code') {
+                            $logged = $parameters;
+                            unset($logged['_merge_inputs']);
+                            $entry['evaluated_parameters'] = $logged;
+                        }
+                        $output = $nodeInstance instanceof DelayNode
+                            ? $nodeInstance->execute($parameters, $frame['context'], ($this->clock)())
+                            : $nodeInstance->execute($parameters, $frame['context']);
+                        if ($nodeInstance instanceof SetVariableNode) {
+                            $changes = $output['_variable_changes'] ?? ['set' => [], 'unset' => []];
+                            foreach ($changes['set'] as $name => $value) {
+                                if (isset($nodesById[$name])) {
+                                    throw new InvalidArgumentException('El nombre de variable no puede coincidir con un ID de nodo.');
+                                }
+                                $frame['context']['_variables'][$name] = $value;
+                                unset($frame['context']['_deleted_variables'][$name]);
+                            }
+                            foreach ($changes['unset'] as $name) {
+                                unset($frame['context']['_variables'][$name]);
+                                $frame['context']['_deleted_variables'][$name] = true;
+                            }
+                            unset($output['_variable_changes']);
+                        }
+                        if ($nodeInstance instanceof DelayNode && $output['resume_at'] > ($this->clock)()) {
+                            $suspendAfter = $output['resume_at'];
+                        }
                     }
-                    if ($loopPath !== [] && ($output['success'] ?? null) === false) {
+                    if ($path !== [] && ($output['success'] ?? null) === false) {
                         throw new RuntimeException("El nodo {$currentNodeId} devolvió success=false.");
                     }
                     $entry['status'] = 'success';
                     $entry['output'] = $output;
-                    $blockContext[$currentNodeId] = $output;
+                    $frame['context'][$currentNodeId] = $output;
+                    $frame['outputs'][$currentNodeId] = $output;
+                    $frame['states'][$currentNodeId] = 'success';
+                } catch (WorkflowSuspended $e) {
+                    $entry['status'] = 'suspended';
+                    throw $e;
                 } catch (\Throwable $e) {
                     $entry['status'] = 'failed';
                     $entry['error'] = $e->getMessage();
                     throw $e;
                 } finally {
                     $entry['execution_time_ms'] = round((microtime(true) - $startTime) * 1000, 2);
-                    $history[$currentNodeId] = $entry;
+                    $frame['history'][$currentNodeId] = $entry;
+                    $history = $frame['history'];
                 }
-
-                foreach ($adjacencyList[$currentNodeId] ?? [] as $edge) {
-                    $handle = $edge['sourceHandle'] ?? 'main_output';
-                    if ($nodeType === 'loop' && $handle !== 'done') {
-                        continue;
-                    }
-                    if (isset($output['branch']) && $handle !== $output['branch']) {
-                        continue;
-                    }
-                    if (!isset($visited[$edge['target']])) {
-                        $queue[] = $edge['target'];
-                    }
+                if ($suspendAfter !== null) {
+                    throw new WorkflowSuspended($suspendAfter);
                 }
             }
+            $outputs = $frame['outputs'];
+            // Estado explícito solo dentro del frame. Loop lo usa al reevaluar su condición.
+            foreach (['_variables', '_deleted_variables'] as $name) {
+                if (isset($frame['context'][$name])) {
+                    $outputs[$name] = $frame['context'][$name];
+                }
+            }
+            return $outputs;
         };
 
         $status = 'completed';
         $error = null;
+        $history = $frames['[]']['history'] ?? [];
         try {
-            $runBlock([$startNode['id']], $context, $executionHistory);
+            if ($resumeAt > ($this->clock)()) {
+                throw new WorkflowSuspended($resumeAt);
+            }
+            $runBlock([$this->findStartNode($nodes)['id']], $initialContext, $history);
+        } catch (WorkflowSuspended $e) {
+            $status = 'suspended';
+            $resumeAt = $e->resumeAt;
         } catch (\Throwable $e) {
             $status = 'failed';
             $error = $e->getMessage();
         }
-        $result = ['status' => $status, 'history' => $executionHistory, 'final_context' => $context];
+        $result = ['status' => $status, 'history' => $history, 'final_context' => $frames['[]']['context'] ?? $initialContext];
         if ($error !== null) {
             $result['error'] = $error;
+        }
+        if ($status === 'suspended') {
+            $result['resume_at'] = $resumeAt;
+            $result['checkpoint'] = ['version' => 1, 'workflow_hash' => $this->workflowHash($workflowData),
+                'resume_at' => $resumeAt, 'executions' => $executions, 'frames' => CheckpointCodec::encode($frames)];
         }
         return $result;
     }
@@ -226,8 +349,8 @@ class Engine
             if (!isset($nodesById[$edge['source']], $nodesById[$edge['target']])) {
                 throw new InvalidArgumentException('Loop: una conexión referencia un nodo inexistente.');
             }
-            $sourceLoop = ($nodesById[$edge['source']]['type'] ?? '') === 'loop';
-            $targetLoop = ($nodesById[$edge['target']]['type'] ?? '') === 'loop';
+            $sourceLoop = in_array($nodesById[$edge['source']]['type'] ?? '', ['loop', 'split_in_batches'], true);
+            $targetLoop = in_array($nodesById[$edge['target']]['type'] ?? '', ['loop', 'split_in_batches'], true);
             $targetHandle = $edge['targetHandle'] ?? 'main_input';
             if (($sourceLoop || $targetLoop) && $targetHandle !== 'main_input' && $targetHandle !== '') {
                 throw new InvalidArgumentException('Loop no admite conexiones por subpuertos.');
@@ -268,7 +391,7 @@ class Engine
             return $found;
         };
         foreach ($nodesById as $id => $node) {
-            if (($node['type'] ?? '') !== 'loop') {
+            if (!in_array($node['type'] ?? '', ['loop', 'split_in_batches'], true)) {
                 continue;
             }
             $bodyRoots = [];

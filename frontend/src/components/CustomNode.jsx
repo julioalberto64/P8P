@@ -17,7 +17,18 @@ export default function CustomNode({ data, selected }) {
     const IconComponent = icons[data.type] || icons.default;
     const isAgent = data.type === 'ai_agent';
     const isIfCondition = data.type === 'if_condition';
-    const isLoop = data.type === 'loop';
+    const isLoop = data.type === 'loop' || data.type === 'split_in_batches';
+    const isSwitch = data.type === 'switch';
+    let switchCases = [];
+    if (isSwitch) {
+        try {
+            const cases = data.parameters?.cases;
+            const parsed = typeof cases === 'string' ? JSON.parse(cases) : cases;
+            switchCases = Array.isArray(parsed) ? parsed.slice(0, 8) : [];
+        } catch {
+            // Los casos también pueden provenir de una expresión que solo resuelve el backend.
+        }
+    }
 
     const isModelNode = data.type === 'ollama_model' || data.type === 'gemini_model';
     const isMemoryNode = data.type === 'simple_memory';
@@ -57,7 +68,7 @@ export default function CustomNode({ data, selected }) {
             </div>
 
             {/* Salida Estándar a la Derecha */}
-            {!isModelNode && !isMemoryNode && !isIfCondition && !isLoop && (
+            {!isModelNode && !isMemoryNode && !isIfCondition && !isLoop && !isSwitch && (
                 <Handle
                     type="source"
                     position={isToolNode ? Position.Top : Position.Right}
@@ -103,6 +114,24 @@ export default function CustomNode({ data, selected }) {
                         <span>Finalizado</span>
                         <Handle type="source" position={Position.Right} id="done"
                             className="!w-2.5 !h-2.5 !bg-emerald-400 !border-2 !border-slate-800" />
+                    </div>
+                </div>
+            )}
+
+            {isSwitch && (
+                <div className="flex flex-col gap-2 mt-3 pt-2 border-t border-slate-700/60 text-[10px] font-mono">
+                    {Array.from({ length: 8 }, (_, index) => (
+                        <div key={index} className="flex items-center justify-end text-amber-400 font-bold relative">
+                            <span>{typeof switchCases[index]?.label === 'string'
+                                ? switchCases[index].label.slice(0, 40) : `Caso ${index + 1}`}</span>
+                            <Handle type="source" position={Position.Right} id={`case_${index + 1}`}
+                                className="!w-2.5 !h-2.5 !bg-amber-400 !border-2 !border-slate-800" />
+                        </div>
+                    ))}
+                    <div className="flex items-center justify-end text-slate-300 font-bold relative">
+                        <span>Predeterminada</span>
+                        <Handle type="source" position={Position.Right} id="default"
+                            className="!w-2.5 !h-2.5 !bg-slate-400 !border-2 !border-slate-800" />
                     </div>
                 </div>
             )}

@@ -20,6 +20,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 use P8P\Core\Engine;
 use P8P\Core\NodeRegistry;
 use P8P\Core\AuthMiddleware;
+use P8P\Core\QueueManager;
 
 // Cargar variables del .env si no están en la sesión PHP
 $envPath = __DIR__ . '/../.env';
@@ -60,9 +61,23 @@ if (!$input) {
 }
 
 try {
+    $queueManager = null;
+    foreach ($input['nodes'] ?? [] as $node) {
+        if (($node['type'] ?? '') === 'delay') {
+            $queueManager = new QueueManager();
+            $queueManager->assertDelaySchema();
+            break;
+        }
+    }
     $result = $engine->executeWorkflow($input);
-    echo json_encode($result);
+    if ($result['status'] === 'suspended') {
+        $queueManager = $queueManager ?? new QueueManager();
+        $result['job_id'] = $queueManager->enqueueContinuation($input, $result);
+        unset($result['checkpoint']);
+        http_response_code(202);
+    }
+    echo json_encode($result, JSON_THROW_ON_ERROR);
 } catch (\Throwable $e) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'error' => 'No se pudo ejecutar o guardar la continuación del workflow. Comprueba el esquema y la disponibilidad de la cola.']);
 }

@@ -53,69 +53,62 @@ try {
     foreach ($jobs as $job) {
         $jobId = $job['id'];
 
-        // 1. Decodificar el payload que contiene la entrada del usuario (message / user_message, session_id)
-        $jobPayload = json_decode($job['payload'], true) ?? [];
-        $workflowStructure = [];
-
-        // 2. Cargar la estructura del workflow desde la base de datos
-        if (!empty($jobPayload['nodes'])) {
-            $workflowStructure = $jobPayload;
-        } elseif (!empty($job['workflow_id'])) {
-            $config = require __DIR__ . '/../config/database.php';
-            $db = Database::getConnection($config);
-            $stmt = $db->prepare("SELECT structure FROM workflows WHERE id = :id");
-            $stmt->execute([':id' => $job['workflow_id']]);
-            $row = $stmt->fetch();
-
-            if ($row) {
-                $workflowStructure = json_decode($row['structure'], true) ?? [];
-            }
-        }
-
-        if (empty($workflowStructure['nodes'])) {
-            $queueManager->markFailed($jobId, "No se encontró una estructura de nodos válida para el trabajo.");
-            continue;
-        }
-
-        // Extraer el mensaje entrante del widget / cURL
-        $incomingMessage = $jobPayload['user_message'] ?? $jobPayload['message'] ?? '';
-        $incomingSession = $jobPayload['session_id'] ?? ('session_' . time());
-
-        // 3. Normalizar nodos e INYECTAR las variables de entrada en los parámetros del nodo disparador (is_start)
-        $normalizedNodes = [];
-        foreach ($workflowStructure['nodes'] as $node) {
-            $realType = $node['data']['type'] ?? $node['type'] ?? 'default';
-            $isStart  = $node['data']['isStart'] ?? $node['data']['is_start'] ?? false;
-            $params   = $node['data']['parameters'] ?? [];
-
-            // Si es el nodo de inicio (chat_trigger o start), le inyectamos los datos reales del payload
-            if ($isStart || $realType === 'chat_trigger' || $realType === 'start') {
-                $params['user_message'] = $incomingMessage;
-                $params['session_id']   = $incomingSession;
-            }
-
-            $normalizedNodes[] = [
-                'id'   => $node['id'],
-                'type' => $realType,
-                'data' => [
-                    'is_start'   => $isStart,
-                    'parameters' => $params
-                ]
-            ];
-        }
-
-        $workflowPayload = [
-            'nodes' => $normalizedNodes,
-            'edges' => $workflowStructure['edges'] ?? []
-        ];
-
         try {
+            $continuation = null;
+            $jobPayload = json_decode($job['payload'], true, 2048, JSON_THROW_ON_ERROR);
+            if (isset($jobPayload['continuation'])) {
+                // Instantánea confiable de QueueManager; no reinyectar entradas al reanudar.
+                $continuation = $jobPayload['continuation']['checkpoint'];
+                $workflowPayload = $jobPayload['continuation']['workflow'];
+            } else {
+                $workflowStructure = [];
+                if (!empty($jobPayload['nodes'])) {
+                    $workflowStructure = $jobPayload;
+                } elseif (!empty($job['workflow_id'])) {
+                    $config = require __DIR__ . '/../config/database.php';
+                    $db = Database::getConnection($config);
+                    $stmt = $db->prepare("SELECT structure FROM workflows WHERE id = :id");
+                    $stmt->execute([':id' => $job['workflow_id']]);
+                    $row = $stmt->fetch();
+                    if ($row) {
+                        $workflowStructure = json_decode($row['structure'], true, 512, JSON_THROW_ON_ERROR);
+                    }
+                }
+                if (empty($workflowStructure['nodes'])) {
+                    $queueManager->markFailed($jobId, "No se encontró una estructura de nodos válida para el trabajo.", $job['claim_token']);
+                    continue;
+                }
+                $incomingMessage = $jobPayload['user_message'] ?? $jobPayload['message'] ?? '';
+                $incomingSession = $jobPayload['session_id'] ?? ('session_' . time());
+                $normalizedNodes = [];
+                foreach ($workflowStructure['nodes'] as $node) {
+                    $realType = $node['data']['type'] ?? $node['type'] ?? 'default';
+                    $isStart = $node['data']['isStart'] ?? $node['data']['is_start'] ?? false;
+                    $params = $node['data']['parameters'] ?? [];
+                    if ($isStart || $realType === 'chat_trigger' || $realType === 'start') {
+                        $params['user_message'] = $incomingMessage;
+                        $params['session_id'] = $incomingSession;
+                    }
+                    $normalizedNodes[] = ['id' => $node['id'], 'type' => $realType,
+                        'data' => ['is_start' => $isStart, 'parameters' => $params]];
+                }
+                $workflowPayload = ['nodes' => $normalizedNodes, 'edges' => $workflowStructure['edges'] ?? []];
+            }
+
             // Se ejecuta pasándole únicamente la estructura normalizada
-            $result = $engine->executeWorkflow($workflowPayload);
-            $queueManager->markCompleted($jobId, $result);
-            $processedCount++;
+            $result = $continuation === null
+                ? $engine->executeWorkflow($workflowPayload)
+                : $engine->resumeWorkflow($workflowPayload, $continuation);
+            if ($result['status'] === 'suspended') {
+                $queueManager->reschedule($jobId, $job['claim_token'], $workflowPayload, $result, $jobPayload);
+            } elseif ($result['status'] === 'failed') {
+                $queueManager->markFailed($jobId, $result['error'] ?? 'Falló el workflow.', $job['claim_token'], $result);
+            } else {
+                $queueManager->markCompleted($jobId, $result, $job['claim_token']);
+                $processedCount++;
+            }
         } catch (\Throwable $e) {
-            $queueManager->markFailed($jobId, $e->getMessage());
+            $queueManager->markFailed($jobId, 'No se pudo procesar el workflow.', $job['claim_token']);
         }
     }
 

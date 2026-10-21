@@ -29,20 +29,22 @@ class ExpressionEvaluator
         // Si el texto es EXACTAMENTE una sola expresión (ej: "{{node_1.output_text}}")
         if (preg_match('/^{{\s*([a-zA-Z0-9_\.]+)\s*}}$/', trim($text), $matches)) {
             $path = $matches[1];
-            $resolved = self::getValueFromPath($path, $context);
-            return $resolved !== null ? $resolved : $text;
+            $found = false;
+            $resolved = self::getValueFromPath($path, $context, $found);
+            return $found ? $resolved : $text;
         }
 
         // Si la expresión está embebida dentro de una cadena o JSON (ej: "{\"response\": \"{{node_1.output_text}}\"}")
         return preg_replace_callback('/{{\s*([a-zA-Z0-9_\.]+)\s*}}/', function ($matches) use ($context) {
             $path = $matches[1];
-            $val = self::getValueFromPath($path, $context);
+            $found = false;
+            $val = self::getValueFromPath($path, $context, $found);
 
             if (is_array($val) || is_object($val)) {
                 return json_encode($val, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             }
 
-            if ($val !== null) {
+            if ($found) {
                 // Escapar caracteres especiales para mantener la sintaxis del JSON intacta
                 $jsonEscaped = json_encode((string)$val, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
                 return substr($jsonEscaped, 1, -1);
@@ -52,67 +54,59 @@ class ExpressionEvaluator
         }, $text);
     }
 
-    private static function getValueFromPath(string $path, array $context): mixed
+    private static function getValueFromPath(string $path, array $context, bool &$found): mixed
     {
         $keys = explode('.', $path);
-
-        // 1. Búsqueda si la ruta empieza por el ID de un nodo
-        $nodeId = $keys[0];
-        if (isset($context[$nodeId]) && is_array($context[$nodeId])) {
-            $current = $context[$nodeId];
+        $first = $keys[0];
+        $found = false;
+        if (isset($context['_deleted_variables'][$first])) {
+            return null;
+        }
+        if (array_key_exists($first, $context['_variables'] ?? [])) {
+            return self::walk($context['_variables'][$first], array_slice($keys, 1), $found);
+        }
+        if (array_key_exists($first, $context)) {
             $subKeys = array_slice($keys, 1);
-
-            // Permitir sintaxis con o sin la clave '.output.'
-            if (!empty($subKeys) && $subKeys[0] === 'output' && !array_key_exists('output', $current)) {
+            $current = $context[$first];
+            if (($subKeys[0] ?? null) === 'output' && is_array($current) && !array_key_exists('output', $current)) {
                 array_shift($subKeys);
             }
-
-            $found = true;
-            foreach ($subKeys as $key) {
-                if (is_array($current) && array_key_exists($key, $current)) {
-                    $current = $current[$key];
-                } else {
-                    $found = false;
-                    break;
-                }
-            }
-
+            $value = self::walk($current, $subKeys, $found);
             if ($found) {
-                return $current;
+                return $value;
             }
         }
+        if (count($keys) === 1) {
+            foreach (array_reverse($context, true) as $id => $output) {
+                if (str_starts_with((string) $id, '_') || !is_array($output)) {
+                    continue;
+                }
+                if (array_key_exists($first, $output)) {
+                    $found = true;
+                    return $output[$first];
+                }
+                if (($output['variable'] ?? null) === $first && array_key_exists('value', $output)) {
+                    $found = true;
+                    return $output['value'];
+                }
+            }
+        }
+        return null;
+    }
 
-        // 2. Búsqueda por ruta absoluta general
-        $current = $context;
-        $found = true;
+    private static function walk(mixed $value, array $keys, bool &$found): mixed
+    {
         foreach ($keys as $key) {
-            if (is_array($current) && array_key_exists($key, $current)) {
-                $current = $current[$key];
+            if (is_array($value) && array_key_exists($key, $value)) {
+                $value = $value[$key];
+            } elseif ($value instanceof \stdClass && property_exists($value, $key)) {
+                $value = $value->{$key};
             } else {
                 $found = false;
-                break;
+                return null;
             }
         }
-
-        if ($found) {
-            return $current;
-        }
-
-        // 3. Búsqueda directa por nombre de propiedad (ej. {{output_text}} o {{output}})
-        if (count($keys) === 1) {
-            $targetKey = $keys[0];
-            foreach (array_reverse($context) as $nodeOutput) {
-                if (is_array($nodeOutput)) {
-                    if (array_key_exists($targetKey, $nodeOutput)) {
-                        return $nodeOutput[$targetKey];
-                    }
-                    if (isset($nodeOutput['variable']) && $nodeOutput['variable'] === $targetKey) {
-                        return $nodeOutput['value'];
-                    }
-                }
-            }
-        }
-
-        return null;
+        $found = true;
+        return $value;
     }
 }
