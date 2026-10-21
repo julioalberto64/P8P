@@ -12,6 +12,13 @@ Connect chat triggers, AI agents, conditions, and integrations on a single canva
 
 ![p8p visual workflow editor with an AI agent connected to chat, messaging, database, and WordPress nodes](docs/images/workflow-editor.png)
 
+
+### Selector de Nodos y Conectores
+
+El modal para agregar nodos cuenta con búsqueda en tiempo real y paginación para explorar fácilmente todo el ecosistema de conectores disponibles (Core, Community y Premium).
+
+![Modal para agregar nodos y conectores con buscador y paginación en p8p](docs/images/node-selector.png)
+
 ### Guided installation
 
 The web installer checks your PHP environment and required extensions before you continue to configuration.
