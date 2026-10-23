@@ -31,7 +31,8 @@ The web installer checks your PHP environment and required extensions before you
 
 - 🎨 **Modern Visual Node Canvas:** Fluid drag-and-drop interface powered by React Flow with custom node modals, side panels, and clean connection edges.
 - 🚀 **Shared Hosting Ready:** Runs on standard PHP (8.1+) & MySQL/MariaDB/SQLite setups. No long-running Node processes required.
-- ⏱️ **Cron-Driven Queue System:** Asynchronous background execution using database queues and standard cron jobs.
+- ⏱️ **Cron-
+Driven Queue System:** Asynchronous background execution using database queues and standard cron jobs.
 - 🔌 **Extensible Plugin/Connector Architecture:** Easily build custom connectors or integrate third-party APIs via Composer packages.
 - 🤖 **AI & MCP Compatible:** Native structure ready for Model Context Protocol (MCP) integrations and LLM agents.
 - 📊 **Execution History & Debugger:** Step-by-step logs and variable inspection for every workflow run.
