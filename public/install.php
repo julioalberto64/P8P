@@ -117,9 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&$step === 2) {
 
             file_put_contents($envFile,$envContent);
 
-            // 5. Crear config/database.php
-            $configContent = "<?php\nreturn [\n    'host' => '{$dbHost}',\n    'port' => '{$dbPort}',\n    'database' => '{$dbName}',\n    'username' => '{$dbUser}',\n    'password' => '{$dbPass}',\n    'charset' => 'utf8mb4'\n];\n";
-            file_put_contents(__DIR__ . '/../config/database.php', $configContent);
+            // config/database.php carga los valores desde .env; no duplicar credenciales.
 
             header("Location: install.php?step=3&force=1");
             exit;
