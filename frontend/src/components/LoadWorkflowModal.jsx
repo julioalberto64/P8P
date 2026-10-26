@@ -17,7 +17,7 @@ export default function LoadWorkflowModal({ isOpen, onClose, onLoadWorkflow }) {
             // Extraer el token guardado en el navegador durante el inicio de sesión
             const token = localStorage.getItem('p8p_token');
 
-            const res = await fetch('http://localhost:8000/get_workflows.php', {
+            const res = await fetch('./get_workflows.php', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',

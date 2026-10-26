@@ -10,7 +10,7 @@ export default function ExecutionLogsModal({ isOpen, onClose }) {
         setLoading(true);
         try {
             const token = localStorage.getItem('p8p_token');
-            const res = await fetch('http://localhost:8000/logs.php', {
+            const res = await fetch('./logs.php', {
                 headers: {
                     'Content-Type': 'application/json',
                     ...(token ? { 'Authorization': `Bearer ${token}` } : {})

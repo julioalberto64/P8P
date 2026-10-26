@@ -97,7 +97,7 @@ export default function App() {
     const fetchSchemas = async () => {
       try {
         const response = await authenticatedFetch(
-            'http://localhost:8000/nodes.php'
+            './nodes.php'
         );
 
         const data = await response.json();
@@ -228,7 +228,7 @@ export default function App() {
   const handleLoadWorkflow = async (id) => {
     try {
       const response = await authenticatedFetch(
-          `http://localhost:8000/get_workflows.php?id=${encodeURIComponent(id)}`
+          `./get_workflows.php?id=${encodeURIComponent(id)}`
       );
 
       const data = await response.json();
@@ -285,7 +285,7 @@ export default function App() {
 
     try {
       const response = await authenticatedFetch(
-          'http://localhost:8000/api.php',
+          './api.php',
           {
             method: 'POST',
             body: JSON.stringify(payload)
@@ -318,7 +318,7 @@ export default function App() {
 
     try {
       const response = await authenticatedFetch(
-          'http://localhost:8000/save_workflow.php',
+          './save_workflow.php',
           {
             method: 'POST',
             body: JSON.stringify(payload)

@@ -8,6 +8,12 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    proxy: {
+      // En desarrollo, las rutas PHP relativas se sirven desde el backend local.
+      '^/.*\\.php(?:\\?|$)': 'http://localhost:8000',
+    },
+  },
   build: {
     // Exporta los archivos compilados directo a la carpeta public del backend PHP
     outDir: '../public',

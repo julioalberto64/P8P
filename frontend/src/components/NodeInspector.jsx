@@ -15,7 +15,7 @@ export default function NodeInspector({
         const fetchCredentials = async () => {
             try {
                 const token = localStorage.getItem('p8p_token');
-                const res = await fetch('http://localhost:8000/credentials.php', {
+                const res = await fetch('./credentials.php', {
                     headers: {
                         'Content-Type': 'application/json',
                         ...(token ? { 'Authorization': `Bearer ${token}` } : {})

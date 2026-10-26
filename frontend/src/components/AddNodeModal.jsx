@@ -22,7 +22,7 @@ export default function AddNodeModal({ isOpen, onClose, onAddNode }) {
         try {
             const token = localStorage.getItem('p8p_token');
 
-            const res = await fetch('http://localhost:8000/nodes.php', {
+            const res = await fetch('./nodes.php', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',

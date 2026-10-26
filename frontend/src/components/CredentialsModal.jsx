@@ -12,7 +12,7 @@ export default function CredentialsModal({ isOpen, onClose }) {
     const fetchCredentials = async () => {
         try {
             const token = localStorage.getItem('p8p_token');
-            const res = await fetch('http://localhost:8000/credentials.php', {
+            const res = await fetch('./credentials.php', {
                 headers: {
                     'Content-Type': 'application/json',
                     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
@@ -44,7 +44,7 @@ export default function CredentialsModal({ isOpen, onClose }) {
         setLoading(true);
         try {
             const token = localStorage.getItem('p8p_token');
-            const res = await fetch('http://localhost:8000/credentials.php', {
+            const res = await fetch('./credentials.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -82,7 +82,7 @@ export default function CredentialsModal({ isOpen, onClose }) {
         if (!confirm('¿Seguro que deseas eliminar esta credencial?')) return;
         try {
             const token = localStorage.getItem('p8p_token');
-            const res = await fetch(`http://localhost:8000/credentials.php?id=${id}`, {
+            const res = await fetch(`./credentials.php?id=${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
