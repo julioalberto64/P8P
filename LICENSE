@@ -1,4 +1,4 @@
-MIT License
+Sustainable Use License
 
 Copyright (c) 2026 julioalberto64
 
@@ -9,8 +9,14 @@ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
+1. The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
+
+2. The Software, or any modified version of the Software, may not be used by you 
+or anyone you permit to use the Software, to provide a Commercial Hosted Service. 
+"Commercial Hosted Service" means providing access to the Software or a modified 
+version of the Software to third parties for a fee or other consideration, where 
+the primary value provided to the third party is the Software itself.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
