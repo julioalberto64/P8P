@@ -2,6 +2,8 @@
 
 > **p8p** (pronounced *p-eight-p*) is a lightweight, self-hosted visual workflow automation engine built with **PHP** and **React Flow**. Designed to give you the power and flexibility of tools like n8n or Make, but optimized to run seamlessly on standard shared hosting environments (cPanel) without requiring Node.js servers or complex infrastructure.
 
+🌐 **Official Website:** [https://p8p.info](https://p8p.info)
+
 ---
 
 ## 🖼️ See p8p in action
@@ -11,7 +13,6 @@
 Connect chat triggers, AI agents, conditions, and integrations on a single canvas. Build workflows with Telegram, Slack, MySQL, WordPress, and HTTP requests using configurable nodes.
 
 ![p8p visual workflow editor with an AI agent connected to chat, messaging, database, and WordPress nodes](docs/images/workflow-editor.png)
-
 
 ### Selector de Nodos y Conectores
 
@@ -31,8 +32,7 @@ The web installer checks your PHP environment and required extensions before you
 
 - 🎨 **Modern Visual Node Canvas:** Fluid drag-and-drop interface powered by React Flow with custom node modals, side panels, and clean connection edges.
 - 🚀 **Shared Hosting Ready:** Runs on standard PHP (8.1+) & MySQL/MariaDB/SQLite setups. No long-running Node processes required.
-- ⏱️ **Cron-
-Driven Queue System:** Asynchronous background execution using database queues and standard cron jobs.
+- ⏱️ **Cron-Driven Queue System:** Asynchronous background execution using database queues and standard cron jobs.
 - 🔌 **Extensible Plugin/Connector Architecture:** Easily build custom connectors or integrate third-party APIs via Composer packages.
 - 🤖 **AI & MCP Compatible:** Native structure ready for Model Context Protocol (MCP) integrations and LLM agents.
 - 📊 **Execution History & Debugger:** Step-by-step logs and variable inspection for every workflow run.
@@ -58,4 +58,9 @@ See our [Roadmap](./ROADMAP.md) for upcoming features.
 
 ## 📄 License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+**p8p** is distributed under a Fair-Code model using the **Sustainable Use License**. 
+This allows you to freely use, modify, and distribute the software for internal business purposes or non-commercial use. 
+
+However, you may not use p8p to provide a managed hosted service (SaaS) that acts as a substitute for p8p itself. 
+
+See the `LICENSE` file for more information.
