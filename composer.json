@@ -2,7 +2,7 @@
   "name": "p8p/engine",
   "description": "Open-source visual workflow automation engine built for PHP & Shared Hosting",
   "type": "project",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "authors": [
     {
       "name": "Julio Morales"
