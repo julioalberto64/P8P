@@ -17,6 +17,12 @@ or anyone you permit to use the Software, to provide a Commercial Hosted Service
 "Commercial Hosted Service" means providing access to the Software or a modified 
 version of the Software to third parties for a fee or other consideration, where 
 the primary value provided to the third party is the Software itself.
+3. Attribution Preservation: Any user interface (including web interfaces, dashboards, 
+and visual workflow editors) provided by the Software or any modified version of the 
+Software must retain a clear, visible, and unobstructed attribution badge or notice 
+stating "Powered by p8p.info" (or "Hecho por p8p.info") with a working hyperlink to 
+https://p8p.info. Removing, hiding, obscuring, or altering this attribution without 
+an explicit commercial white-label license from the Copyright Holder is strictly prohibited.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
