@@ -3,11 +3,11 @@
         'name' => 'p8p/engine',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '402eef74b199d36aaacce6c5e070c4a5c9030c51',
+        'reference' => '25dee46b2a7279f7482f22b32949c3130afb2a22',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
-        'dev' => true,
+        'dev' => false,
     ),
     'versions' => array(
         'dompdf/dompdf' => array(
@@ -76,7 +76,7 @@
         'p8p/engine' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '402eef74b199d36aaacce6c5e070c4a5c9030c51',
+            'reference' => '25dee46b2a7279f7482f22b32949c3130afb2a22',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
