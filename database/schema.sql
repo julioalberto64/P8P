@@ -3,10 +3,13 @@
 -- Archivo: database/schema.sql
 -- Compatible con: MariaDB 10.2+ / MySQL 8.0+
 -- ===================================================
+-- Fuente del instalador public/install.php y de instalaciones manuales nuevas.
+-- No borra tablas ni datos. CREATE TABLE IF NOT EXISTS no actualiza tablas existentes;
+-- para instalaciones anteriores, usar los scripts CLI de database/migrations/.
 
 -- 1. Tabla para almacenar la definición y el lienzo de los Workflows
 CREATE TABLE IF NOT EXISTS workflows (
-                                         id VARCHAR(36) NOT NULL,
+    id VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT DEFAULT NULL,
     structure JSON NOT NULL, -- Matriz de nodos y conexiones enviadas desde React Flow
@@ -18,7 +21,7 @@ CREATE TABLE IF NOT EXISTS workflows (
 
 -- 2. Tabla para la cola de ejecuciones asíncronas en segundo plano
 CREATE TABLE IF NOT EXISTS queue_jobs (
-    id VARCHAR(255) NOT NULL,
+    id VARCHAR(36) NOT NULL,
     workflow_id VARCHAR(255) NULL,
     payload LONGTEXT NOT NULL,
     status ENUM('pending', 'processing', 'completed', 'failed') NOT NULL DEFAULT 'pending',
@@ -36,7 +39,7 @@ CREATE TABLE IF NOT EXISTS queue_jobs (
 
 -- Tabla para almacenar credenciales encriptadas (API Keys, OAuth Tokens, Basic Auth)
 CREATE TABLE IF NOT EXISTS credentials (
-                                           id VARCHAR(36) NOT NULL,
+    id VARCHAR(36) NOT NULL,
     name VARCHAR(255) NOT NULL,
     type VARCHAR(100) NOT NULL,    -- ej: 'openai_api', 'bearer_token', 'header_auth'
     data TEXT NOT NULL,             -- JSON encriptado en AES-256-GCM

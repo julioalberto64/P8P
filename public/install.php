@@ -43,6 +43,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&$step === 2) {
     } elseif (empty($adminUser) || empty($adminPass)) {$error = "El usuario y la contraseña del Administrador son obligatorios.";
     } else {
         try {
+            $schema = file_get_contents(__DIR__ . '/../database/schema.sql');
+            if ($schema === false || trim($schema) === '') {
+                throw new RuntimeException('No se pudo leer database/schema.sql o el archivo está vacío.');
+            }
+
             // 1. Probar conexión PDO
             $dsn = "mysql:host={$dbHost};port={$dbPort};charset=utf8mb4";
             $pdo = new PDO($dsn, $dbUser,$dbPass, [
@@ -53,51 +58,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&$step === 2) {
             $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
             $pdo->exec("USE `{$dbName}`;");
 
-            // 3. Crear Estructura de Tablas
-            $schema = "
-            CREATE TABLE IF NOT EXISTS workflows (
-                id VARCHAR(255) NOT NULL,
-                name VARCHAR(255) NOT NULL,
-                description TEXT NULL,
-                structure LONGTEXT NOT NULL,
-                is_active TINYINT(1) NOT NULL DEFAULT 1,
-                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                PRIMARY KEY (id)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-            CREATE TABLE IF NOT EXISTS queue_jobs (
-                id VARCHAR(255) NOT NULL,
-                workflow_id VARCHAR(255) NULL,
-                payload LONGTEXT NOT NULL,
-                status ENUM('pending', 'processing', 'completed', 'failed') NOT NULL DEFAULT 'pending',
-                attempts INT NOT NULL DEFAULT 0,
-                available_at DATETIME NULL,
-                claim_token VARCHAR(64) NULL,
-                error_message TEXT NULL,
-                result LONGTEXT NULL,
-                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                PRIMARY KEY (id),
-                KEY idx_status (status),
-                KEY idx_queue_available (status, available_at, created_at)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-            CREATE TABLE IF NOT EXISTS credentials (
-                id VARCHAR(255) NOT NULL,
-                name VARCHAR(255) NOT NULL,
-                type VARCHAR(100) NOT NULL,
-                data LONGTEXT NOT NULL,
-                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                PRIMARY KEY (id)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-            ";
-
+            // 3. Crear todas las tablas desde el mismo esquema usado en instalaciones manuales.
             $pdo->exec($schema);
-            require_once __DIR__ . '/../vendor/autoload.php';
-            \P8P\Core\TriggerSchema::install($pdo);
-            \P8P\Core\ConversationMemorySchema::install($pdo);
 
             // 4. Generar archivo .env unificado
             $appSecret = base64_encode(random_bytes(32));
