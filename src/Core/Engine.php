@@ -26,6 +26,22 @@ class Engine
         $this->registeredNodes[$node->getSchema()['type']] = $node;
     }
 
+    /** Literal source fields are resolved by their node, with values bound separately. */
+    private function evaluateParameters(NodeInterface $node, array $raw, array $context): array
+    {
+        if ($node instanceof SwitchNode || $node->getSchema()['type'] === 'code'
+            || ($node->getSchema()['evaluates_expressions'] ?? false) === true) {
+            return $raw;
+        }
+        $literal = $node->getSchema()['literal_parameters'] ?? [];
+        $parameters = [];
+        foreach ($raw as $key => $value) {
+            $parameters[$key] = in_array($key, $literal, true)
+                ? $value : ExpressionEvaluator::evaluate($value, $context);
+        }
+        return $parameters;
+    }
+
     public function executeWorkflow(array $workflowData, array $initialContext = []): array
     {
         return $this->run($workflowData, $initialContext);
@@ -221,8 +237,7 @@ class Engine
                             }, $currentNodeId);
                     } else {
                         // Código y casos JSON nunca se interpolan como código fuente o texto JSON completo.
-                        $parameters = $nodeInstance instanceof SwitchNode || $nodeType === 'code'
-                            ? $raw : ExpressionEvaluator::evaluate($raw, $frame['context']);
+                        $parameters = $this->evaluateParameters($nodeInstance, $raw, $frame['context']);
                         unset($parameters['_merge_inputs'], $parameters['_merge_skipped']);
                         if ($nodeInstance instanceof MergeNode) {
                             $parameters['_merge_inputs'] = $mergeInputs;
@@ -243,7 +258,7 @@ class Engine
                                     continue;
                                 }
                                 $tick();
-                                $subParams = ExpressionEvaluator::evaluate($nodesById[$sourceId]['data']['parameters'] ?? [], $frame['context']);
+                                $subParams = $this->evaluateParameters($instance, $nodesById[$sourceId]['data']['parameters'] ?? [], $frame['context']);
                                 $subContext = $frame['context'];
                                 if ($instance instanceof \P8P\Nodes\Core\SimpleMemoryNode) {
                                     $subContext['_memory_scope'] = $frame['context']['_workflow_id'] ?? $memoryScope;

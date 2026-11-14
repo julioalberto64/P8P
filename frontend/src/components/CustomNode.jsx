@@ -30,7 +30,7 @@ export default function CustomNode({ data, selected }) {
         }
     }
 
-    const isModelNode = ['ollama_model', 'gemini_model', 'openai_model', 'anthropic_model'].includes(data.type);
+    const isModelNode = ['ollama_model', 'gemini_model', 'openai_model', 'anthropic_model', 'deepseek_model'].includes(data.type);
     const isMemoryNode = data.type === 'simple_memory';
     const isToolNode = data.type === 'mcp_tool';
     const isSubNode = isModelNode || isMemoryNode || isToolNode;

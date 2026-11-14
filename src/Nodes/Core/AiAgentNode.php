@@ -73,7 +73,7 @@ class AiAgentNode implements NodeInterface
         }
         $model = $connections['model'][0];
         $provider = $model['provider'] ?? null;
-        if (!in_array($provider, ['openai', 'anthropic', 'gemini', 'ollama'], true)) {
+        if (!in_array($provider, ['openai', 'anthropic', 'gemini', 'ollama', 'deepseek'], true)) {
             throw new InvalidArgumentException('Proveedor de IA no soportado.');
         }
         $system = $parameters['system_prompt'] ?? 'Eres un asistente de automatización en P8P.';
@@ -112,6 +112,7 @@ class AiAgentNode implements NodeInterface
                 $modelNode = $this->modelProviders[$provider] ?? match ($provider) {
                     'openai' => new \P8P\Nodes\Premium\OpenAIChatModelNode(),
                     'anthropic' => new \P8P\Nodes\Premium\AnthropicClaudeModelNode(),
+                    'deepseek' => new \P8P\Nodes\Premium\DeepSeekNode($this->client),
                     'gemini' => new \P8P\Nodes\Premium\GeminiChatModelNode($this->client)
                 };
                 $result = $modelNode->generate($model, $messages);

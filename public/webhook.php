@@ -35,6 +35,8 @@ try {
     $db = Database::getConnection(require __DIR__ . '/../config/database.php');
     $result = (new TriggerManager($db, new CredentialManager($db)))->receive($_GET['trigger_id'], [
         'method' => $_SERVER['REQUEST_METHOD'], 'headers' => $headers, 'query' => $_GET,
+        // PHP normalizes data.id to data_id; signature verification needs the original key.
+        'raw_query' => $_SERVER['QUERY_STRING'] ?? '',
         // PHP consumes multipart bodies before php://input. Only untrusted scalar IDs
         // are used by adapters; uploaded server files are deliberately never forwarded.
         'form_fields' => $_POST, 'raw_body' => $raw]);

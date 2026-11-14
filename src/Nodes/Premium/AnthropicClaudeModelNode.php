@@ -6,6 +6,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
 use InvalidArgumentException;
 use P8P\Core\CredentialManager;
+use P8P\Core\ExpressionEvaluator;
 use P8P\Interfaces\NodeInterface;
 use RuntimeException;
 
@@ -20,10 +21,11 @@ class AnthropicClaudeModelNode implements NodeInterface
     public function getSchema(): array
     {
         return [
-            'type' => 'anthropic_model', 'name' => 'Anthropic Claude Model', 'category' => 'Premium',
+            'evaluates_expressions' => true,
+            'type' => 'anthropic_model', 'name' => 'Anthropic Claude Chat Model', 'category' => 'Premium',
             'description' => 'Proveedor Claude para el puerto Model del AI Agent mediante Messages API.',
             'icon' => 'Sparkles', 'is_start' => false,
-            'help_text' => 'Conecta la salida Model al AI Agent. Credencial generic_bearer: API Key o JSON {"api_key":"...","workspace_id":"..."}. workspace_id es necesario para claves no limitadas a un workspace. Introduce un modelo habilitado. API 2026-10-21, sin temperatura, streaming ni herramientas. Salidas incompletas detienen el flujo.',
+            'help_text' => 'Conecta la salida Model al AI Agent. Credencial generic_bearer: API Key o JSON {"api_key":"...","workspace_id":"..."}. workspace_id es necesario para claves no limitadas a un workspace. Modelo configurable habilitado en tu cuenta (familias vigentes Sonnet, Haiku y Opus; consulta Models API). API 2026-10-21. Solo documentos convertidos previamente a texto UTF-8: 1 MiB por proveedor y 128 KiB por agente. No admite PDF, DOCX, imágenes, URLs ni archivos directamente. Sin streaming ni herramientas: el agente actual no las ejecuta. Salidas incompletas detienen el flujo.',
             'parameters' => [
                 'credential_id' => ['type' => 'credential', 'required' => true, 'label' => 'Credencial de Anthropic'],
                 'model' => ['type' => 'string', 'required' => true, 'label' => 'Identificador de Claude habilitado'],
@@ -44,7 +46,7 @@ class AnthropicClaudeModelNode implements NodeInterface
 
     public function execute(array $parameters, array $context): array
     {
-        $config = $this->configuration($parameters);
+        $config = $this->configuration(ExpressionEvaluator::evaluate($parameters, $context));
         return ['type' => 'chat_model', 'provider' => 'anthropic', 'credential_id' => $config['credential_id'],
             'model' => $config['model'], 'options' => ['max_tokens' => $config['max_tokens']]];
     }
@@ -78,7 +80,7 @@ class AnthropicClaudeModelNode implements NodeInterface
             }
             $text .= $block['text'];
         }
-        if ($text === '') {
+        if (trim($text) === '') {
             throw new RuntimeException('Anthropic: respuesta sin texto utilizable.');
         }
         $usage = [];
@@ -87,7 +89,7 @@ class AnthropicClaudeModelNode implements NodeInterface
                 $usage[$key] = $body['usage'][$key];
             }
         }
-        return ['success' => true, 'provider' => 'anthropic', 'model_used' => $config['model'],
+        return ['success' => true, 'status_code' => 200, 'data' => ['text' => str_replace($credential['api_key'], '[redacted]', $text)], 'provider' => 'anthropic', 'model_used' => $config['model'],
             'output_text' => str_replace($credential['api_key'], '[redacted]', $text), 'usage' => $usage,
             'finish_reason' => $body['stop_reason']];
     }
