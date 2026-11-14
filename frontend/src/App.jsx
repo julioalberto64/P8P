@@ -350,10 +350,50 @@ const handleSaveWorkflow = async () => {
         {/* Barra superior */}
         <header className="min-h-14 shrink-0 flex-wrap gap-3 py-2 border-b border-slate-800 bg-slate-950/80 backdrop-blur px-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-3">
-            <div className="bg-indigo-600 p-1.5 rounded-lg text-white font-bold tracking-wider text-sm flex items-center gap-1">
-              <Layers className="w-4 h-4" />
-              P8P
-            </div>
+           <div className="flex items-center px-2 py-1 bg-slate-900 border border-slate-800 rounded-lg select-none">
+  <svg viewBox="0 0 92 36" className="h-6 w-auto" fill="none">
+    <defs>
+      <linearGradient id="p8p-modern-app" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#818cf8" />
+        <stop offset="100%" stopColor="#22d3ee" />
+      </linearGradient>
+    </defs>
+
+    {/* Letra "p" izquierda (geométrica moderna) */}
+    <path
+      d="M12 29 V 12 H 20 C 23.5 12, 25.5 14, 25.5 17 C 25.5 20, 23.5 22, 20 22 H 12"
+      stroke="#f8fafc"
+      strokeWidth="3.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+
+    {/* Cable de conexión entre los dos nodos del 8 */}
+    <path
+      d="M46 13.5 C 56 13.5, 36 22.5, 46 22.5"
+      stroke="url(#p8p-modern-app)"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+    />
+
+    {/* Nodo superior del "8" */}
+    <rect x="37" y="8" width="18" height="9" rx="3" fill="#1e1b4b" stroke="#6366f1" strokeWidth="1.8" />
+    <circle cx="46" cy="12.5" r="1.5" fill="#818cf8" />
+
+    {/* Nodo inferior del "8" */}
+    <rect x="37" y="19" width="18" height="9" rx="3" fill="#083344" stroke="#06b6d4" strokeWidth="1.8" />
+    <circle cx="46" cy="23.5" r="1.5" fill="#22d3ee" />
+
+    {/* Letra "p" derecha (geométrica moderna) */}
+    <path
+      d="M66.5 29 V 12 H 74.5 C 78 12, 80 14, 80 17 C 80 20, 78 22, 74.5 22 H 66.5"
+      stroke="#f8fafc"
+      strokeWidth="3.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+</div>
 
             <span className="text-slate-500">/</span>
 

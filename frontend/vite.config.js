@@ -19,5 +19,26 @@ export default defineConfig({
     outDir: '../public',
     // IMPORTANTE: Ponlo en false para evitar que Vite borre tus archivos .php (api.php, cron.php, etc.) al compilar
     emptyOutDir: false,
+    chunkSizeWarningLimit: 600,
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: 'vendor-react',
+              test: /node_modules[\\/](react|react-dom)/,
+            },
+            {
+              name: 'vendor-xyflow',
+              test: /node_modules[\\/]@xyflow/,
+            },
+            {
+              name: 'vendor-icons',
+              test: /node_modules[\\/]lucide-react/,
+            },
+          ],
+        },
+      },
+    },
   },
 })
