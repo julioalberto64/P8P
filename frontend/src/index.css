@@ -10,3 +10,26 @@ html, body, #root {
   color: #f8fafc;
   font-family: system-ui, -apple-system, sans-serif;
 }
+ç.react-flow__controls {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+  border: 1px solid #1e293b !important; /* slate-800 */
+  border-radius: 0.5rem !important;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  background-color: #0f172a !important; /* slate-900 */
+  border-bottom: 1px solid #1e293b !important;
+  color: #cbd5e1 !important; /* slate-300 */
+  fill: #cbd5e1 !important;
+}
+
+.react-flow__controls-button:hover {
+  background-color: #1e293b !important; /* slate-800 */
+  color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
+.react-flow__controls-button svg {
+  fill: currentColor !important;
+}

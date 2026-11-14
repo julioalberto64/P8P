@@ -11,6 +11,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import CustomNode from './CustomNode.jsx';
 import DeletableEdge from './DeletableEdge.jsx';
+import { CanvasWatermark } from './canvasCore.jsx';
 
 const nodeTypes = {
     customNode: CustomNode,
@@ -53,10 +54,15 @@ export default function Canvas({ nodes, setNodes, edges, setEdges, onNodeSelect 
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
                 onNodeClick={handleNodeClick}
+                proOptions={{ hideAttribution: true }}
                 fitView
             >
                 <Background color="#334155" variant={BackgroundVariant.Dots} gap={20} size={1} />
-                <Controls className="!bg-slate-800 !border-slate-700 !text-slate-200 fill-slate-200" />
+                <Controls
+                    position="bottom-right"
+                    className="!bg-slate-800 !border-slate-700 !text-slate-200 [&>button]:!bg-slate-800 [&>button]:!border-slate-700 [&>button]:!fill-slate-200 hover:[&>button]:!bg-slate-700"
+                />
+                <CanvasWatermark />
             </ReactFlow>
         </div>
     );

@@ -8,6 +8,7 @@ import ExecutionLogsModal from './components/ExecutionLogsModal.jsx';
 import TriggerManager from './components/TriggerManager.jsx';
 import LoginModal from './components/LoginModal.jsx';
 import NewWorkflowModal from './components/NewWorkflowModal.jsx';
+import { prepareWorkflowPayload } from './components/canvasCore.jsx';
 
 import {
   Play,
@@ -252,89 +253,77 @@ export default function App() {
   };
 
   // Ejecutar workflow
-  const handleTestWorkflow = async () => {
-    setIsRunning(true);
-    setExecutionResult(null);
+const handleTestWorkflow = async () => {
+  setIsRunning(true);
+  setExecutionResult(null);
 
+  try {
+    const graphData = prepareWorkflowPayload(nodes, edges, 'run');
     const payload = {
       workflow_id: workflowId,
-      nodes: nodes.map((node) => ({
-        id: node.id,
-        type: node.data.type,
-        data: {
-          is_start: node.data.isStart,
-          parameters: node.data.parameters || {}
-        }
-      })),
-      edges: edges.map((edge) => ({
-        source: edge.source,
-        target: edge.target,
-        sourceHandle: edge.sourceHandle,
-        targetHandle: edge.targetHandle
-      }))
+      ...graphData
     };
 
-    try {
-      const response = await authenticatedFetch(
-          './api.php',
-          {
-            method: 'POST',
-            body: JSON.stringify(payload)
-          }
-      );
+    const response = await authenticatedFetch(
+        './api.php',
+        {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        }
+    );
 
-      const data = await response.json();
-      setExecutionResult(data);
-    } catch (err) {
-      setExecutionResult({
-        error:
-            'Error al conectar con el backend PHP: ' +
-            err.message
-      });
-    } finally {
-      setIsRunning(false);
-    }
-  };
+    const data = await response.json();
+    setExecutionResult(data);
+  } catch (err) {
+    setExecutionResult({
+      error:
+          'Error al conectar con el backend PHP: ' +
+          err.message
+    });
+  } finally {
+    setIsRunning(false);
+  }
+};
 
   // Guardar workflow
-  const handleSaveWorkflow = async () => {
-    setIsSaving(true);
+const handleSaveWorkflow = async () => {
+  setIsSaving(true);
 
+  try {
+    const graphData = prepareWorkflowPayload(nodes, edges, 'save');
     const payload = {
       id: workflowId,
       name: workflowName,
-      nodes,
-      edges
+      ...graphData
     };
 
-    try {
-      const response = await authenticatedFetch(
-          './save_workflow.php',
-          {
-            method: 'POST',
-            body: JSON.stringify(payload)
-          }
-      );
+    const response = await authenticatedFetch(
+        './save_workflow.php',
+        {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        }
+    );
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (data.success) {
-        setWorkflowId(data.workflow_id);
+    if (data.success) {
+      setWorkflowId(data.workflow_id);
 
-        alert(
-            `Workflow Guardado con Éxito. ID: ${data.workflow_id}`
-        );
-      } else {
-        alert(`Error al guardar: ${data.error}`);
-      }
-    } catch (err) {
       alert(
-          `Error de conexión con la base de datos: ${err.message}`
+          `Workflow Guardado con Éxito. ID: ${data.workflow_id}`
       );
-    } finally {
-      setIsSaving(false);
+    } else {
+      alert(`Error al guardar: ${data.error}`);
     }
-  };
+  } catch (err) {
+    alert(
+        `Error de conexión con la base de datos: ${err.message}`
+    );
+  } finally {
+    setIsSaving(false);
+  }
+};
 
   // Esquema del nodo seleccionado
   const selectedNodeType =
