@@ -261,6 +261,7 @@ return array(
     'P8P\\Core\\TriggerProviders\\CommerceTriggers' => $baseDir . '/src/Core/TriggerProviders/CommerceTriggers.php',
     'P8P\\Core\\TriggerProviders\\ContentSuiteTriggers' => $baseDir . '/src/Core/TriggerProviders/ContentSuiteTriggers.php',
     'P8P\\Core\\TriggerProviders\\CrmSuiteTriggers' => $baseDir . '/src/Core/TriggerProviders/CrmSuiteTriggers.php',
+    'P8P\\Core\\TriggerProviders\\GenericWebhookTriggers' => $baseDir . '/src/Core/TriggerProviders/GenericWebhookTriggers.php',
     'P8P\\Core\\TriggerProviders\\NotionWebhooks' => $baseDir . '/src/Core/TriggerProviders/NotionWebhooks.php',
     'P8P\\Core\\TriggerProviders\\WebhookProviders' => $baseDir . '/src/Core/TriggerProviders/WebhookProviders.php',
     'P8P\\Core\\TriggerRegistry' => $baseDir . '/src/Core/TriggerRegistry.php',

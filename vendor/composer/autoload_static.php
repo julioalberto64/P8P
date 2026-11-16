@@ -378,6 +378,7 @@ class ComposerStaticInite63f0275461d896318a7bcc1ac8fb871
         'P8P\\Core\\TriggerProviders\\CommerceTriggers' => __DIR__ . '/../..' . '/src/Core/TriggerProviders/CommerceTriggers.php',
         'P8P\\Core\\TriggerProviders\\ContentSuiteTriggers' => __DIR__ . '/../..' . '/src/Core/TriggerProviders/ContentSuiteTriggers.php',
         'P8P\\Core\\TriggerProviders\\CrmSuiteTriggers' => __DIR__ . '/../..' . '/src/Core/TriggerProviders/CrmSuiteTriggers.php',
+        'P8P\\Core\\TriggerProviders\\GenericWebhookTriggers' => __DIR__ . '/../..' . '/src/Core/TriggerProviders/GenericWebhookTriggers.php',
         'P8P\\Core\\TriggerProviders\\NotionWebhooks' => __DIR__ . '/../..' . '/src/Core/TriggerProviders/NotionWebhooks.php',
         'P8P\\Core\\TriggerProviders\\WebhookProviders' => __DIR__ . '/../..' . '/src/Core/TriggerProviders/WebhookProviders.php',
         'P8P\\Core\\TriggerRegistry' => __DIR__ . '/../..' . '/src/Core/TriggerRegistry.php',

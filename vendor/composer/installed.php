@@ -3,7 +3,7 @@
         'name' => 'p8p/engine',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '25dee46b2a7279f7482f22b32949c3130afb2a22',
+        'reference' => '386d56e48dd457e1babde5fc54a059ef76b4463b',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -76,7 +76,7 @@
         'p8p/engine' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '25dee46b2a7279f7482f22b32949c3130afb2a22',
+            'reference' => '386d56e48dd457e1babde5fc54a059ef76b4463b',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

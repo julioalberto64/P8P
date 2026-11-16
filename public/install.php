@@ -246,7 +246,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&$step === 2) {
                 <div class="text-slate-300 font-sans font-semibold">⚠️ Tarea Programada Requerida (Cron Job):</div>
                 <div class="text-[11px]">Para procesar las colas asíncronas de trabajo (como el chat web), configura este Cron en tu cPanel o servidor (ejecución cada minuto):</div>
                 <div class="p-2 bg-slate-900 border border-slate-800 rounded text-emerald-400 text-[11px] break-all select-all font-mono">
-                    * * * * * php <?= realpath(__DIR__ . '/cron.php') ?: '/ruta/servidor/public/cron.php' ?>
+                    * * * * * php <?= realpath(__DIR__ . '/cron.php') ?: '/ruta/servidor/public/cron.php' ?>  >/dev/null 2>&1
                 </div>
             </div>
 
